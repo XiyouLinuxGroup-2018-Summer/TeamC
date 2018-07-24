@@ -5,7 +5,7 @@
 	> Created Time: 2018年07月22日 星期日 19时23分44秒
  ************************************************************************/
 
-/*    A 
+/*    A
 #include<iostream>
 #include<string>
 #include<algorithm>
@@ -35,7 +35,7 @@ int main(void) {
 
 
 
-/*		C 
+/*		C
 #include<iostream>
 #include<string>
 #include<algorithm>
@@ -74,7 +74,7 @@ int main(void) {
 }*/
 
 
-#include<iostream>
+/*#include<iostream>
 #include<string>
 #include<algorithm>
 #include<stdio.h>
@@ -90,13 +90,15 @@ int main(void) {
 		case '+': cout << a + b << endl; break ;
 		case '-': cout << a - b << endl ; break;
 		case '*': cout << a*b << endl ; break;
-		case '/': printf("%.2lf", a * 1.0 / b);  cout << endl ; break;
+		case '/': if( a%b == 0) printf("%d\n",a/b);
+					//当且仅当它不是整数时，结果应该被舍入到2个小数点。
+				  else
+				  	printf("%.2lf\n", a * 1.0 / b);
+				break;
 		default : break;
 		}
 	}
-}
-
-
+}*/
 
 
 /*#include<iostream>
@@ -120,67 +122,78 @@ int main(void) {
 }*/
 
 
-//  unfinshed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// #include<iostream>
-// #include<set>
-// using namespace std;
-// int main(void) {
-// 	int n , m  , temp ;
-// 	set<int> intSet ;
-// 	cin >> n >> m ;
-// 	if (!n && !m )
-// 		return 0 ;
-// 	while (n--) {
-// 		cin >>  temp  ;
-// 		intSet.insert(temp);
-// 	}
-// 	intSet.insert(m);
-// 	auto i = intSet.begin() ;
-// 	for( ;i !=  (--intSet.end()) ;i++  )
-// 		cout << *i << " ";
-// 	cout << *i << endl ;
-// }
+/*#include<iostream>
+#include<algorithm>
+#include<vector>
+using namespace std;
+int main(void) {
+	long long n , m  , temp ;
+	vector<long long> VV  ;
+	while (cin >> n >> m ) {
+		if (!n && !m )
+			return 0 ;
+		while (n--) {
+			cin >>  temp  ;
+			VV.push_back(temp);
+		}
+		VV.push_back(m);
+		sort(VV.begin(), VV.end());
+		size_t i ;
+		for (i = 0; i < VV.size() - 1 ; ++i )
+			cout << VV[i] << " ";
+		cout << VV[i] << "\n" ;
+		VV.clear(); //because of you !!!!!!!!!!!!!1
+	}
+	return 0;
+}*/
 
-// #include<iostream>
-// #include<cctype>
-// using namespace std;
-// int main(void) {
-// 	string str ;
-// 	int n ;
-// 	cin >> n ;
-// 	while (n--) {
-// 		cin >>  str   ;
-// 		cout << str << endl ;
-// 		for (int i = 0 ;i < str.size() ;++i ) {
-// 			if ( str[i] == ' ') {
-// 				cout << "no" << endl ;
-// 				break ;
-// 			}
-// 		}
-// 		if (str[0] >= '0' && str[0] <= '9') {
-// 			cout << "no" << endl;
-// 			continue ;
-// 		}
-// 		//cout << "yes" << endl ;
-// 	}
-// }
+#include<iostream>
+#include<cctype>
+#include<string>
+using namespace std;
+int main(void) {
+	string str ;
+	long long n ;
+	bool tag = true ;
+	while (cin >> n ) {
+		getchar(); 
+		while (n--) {
+			getline(cin , str)   ;
+			tag = true ;
+			/*第一个字符必须是字母（不分大小写）或下划线（_）;*/
+			/*那么他的反面是什么呐？？或的反面是且，这是一道数学题，哈哈哈哈哈*/
+			if ( !isalpha(str[0]) && str[0] != '_') { 
+				cout << "no" << endl ;
+				continue ;
+			}
+			for (int i = 1; i < str.size() ; ++i)
+			{
+				if ( !isalnum(str[i]) && str[i] != '_') {
+					cout << "no" << endl;
+					tag = false ;
+					break ;
+				}
+			}
+			if (tag)   cout << "yes" << endl ;
+		}
+	}
+}
 
 
-// #include<iostream>
-// #include<sstream>
-// #include<string>
-// using namespace std;
-// int main(void) {
-// 	string line ,tmp ;
-// 	while( getline(cin,line)){
-// 		stringstream  ss(line);
-// 		while( ss >> tmp ){
-// 			tmp[0] = toupper(tmp[0]); 
-// 			cout << tmp << " " ;
-// 		}
-// 		cout <<  endl;
-// 	}
-// }
+/*#include<iostream>
+#include<string>
+using namespace std;
+int main(void) {
+	string line ,tmp ;
+	while( getline(cin,line)){
+		line[0] = toupper(line[0]);
+		for(int i= 1 ;i < line.size() ;++i ){
+			if(line[i-1] == ' ' && islower(line[i]) )
+				line[i] = toupper(line[i]);
+		}
+		cout << line << endl ;
+	}
+}*/
 
 
 
@@ -200,19 +213,19 @@ int qiuyueshu( int TT){
 int main(void) {
 	int m  ;
 	cin >> m ;
-	int a,b; 
+	int a,b;
 	while(m--){
 		cin >> a >> b ;
 		if((qiuyueshu(a) == b) && (qiuyueshu(b) == a ))
 			cout << "YES"<<  endl ;
-		else 
+		else
 			cout << "NO"<< endl ;
 	}
 }*/
 
 
 
-/* 
+/*
 #include<iostream>
 #include<sstream>
 #include<string>
@@ -237,7 +250,7 @@ int main(void) {
 		}
 		if(tag  == 1 )
 			cout << "Sorry"<<  endl;
-		else 
+		else
 			cout << "OK"<<  endl;
 	}
 }*/
@@ -245,24 +258,21 @@ int main(void) {
 
 
 
-// #include<iostream>
-// #include<sstream>
-// #include<string>
-// using namespace std;
-// int main(void) {
-// 	int n ,a,b,c ;
-// 	cin >> n ;
-// 	while(n--){
-// 		cin >> a >> b >> c ;
-// 		if((a+b>c) && (b+c > a) && (c+a >b) && (a-b<c) && (b-c <a) && (c-a < b) ){
-// 			if( n == 1) cout << "YES";
-// 			else 
-// 				cout << "YES" << endl ;
-// 		}
-// 		else {
-// 			if( n == 1) cout << "NO"  ;
-// 			else 
-// 				cout << "NO" <<  endl ;
-// 		}
-// 	}
-// }
+/*#include<iostream>
+#include<sstream>
+#include<string>
+using namespace std;
+int main(void) {
+	int n   ;
+	double a,b,c ;
+	cin >> n ;
+	while(n--){
+		cin >> a >> b >> c ;
+		if((a+b>c) && (b+c > a) && (c+a >b) && (a-b<c) && (b-c <a) && (c-a < b) ){
+				cout << "YES" << endl ;
+		}
+		else {
+				cout << "NO" <<  endl ;
+		}
+	}
+}*/
