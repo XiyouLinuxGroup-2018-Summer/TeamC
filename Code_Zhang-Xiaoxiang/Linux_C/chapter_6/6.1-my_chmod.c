@@ -2,7 +2,7 @@
 * 6.1-my_chmod.c     
 * @author: PhoenixXC
 * @email: xuancbm@xiyoulinux.org
-* @description: [Linux_C] -- 改变文件权限(未考虑特殊权限)
+* @description: [Linux_C] -- 改变文件权限(只支持数字权限表示)
 * @created: Mon Jul 23 2018 11:29:40 GMT+0800 (CST)
 * @last-modified: Mon Jul 23 2018 11:29:40 GMT+0800 (CST)
 */
