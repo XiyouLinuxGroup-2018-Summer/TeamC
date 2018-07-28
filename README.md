@@ -12,6 +12,7 @@
 |  Question| 学习中遇到的问题 | 
 |   Summary |  每周的总结以及周报之类的  | 
 |Project_requirements|对于每一个项目的要求|
+|Week_test|存放每周的测验报告|
 
 
 *** 
