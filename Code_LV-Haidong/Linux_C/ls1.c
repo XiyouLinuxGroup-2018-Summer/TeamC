@@ -214,13 +214,10 @@ void Quicksort(int cnt1,char filenames2[][PATH_MAX],int start)
        free(name1);
 }
 void getWidth(){
-    char *tp;
     struct winsize wbuf;
     terminalWidth = 80;
     if( isatty(STDOUT_FILENO) ){
         if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &wbuf) == -1 || wbuf.ws_col == 0){
-            if(  getenv("COLUMNS") )
-                terminalWidth = atoi( tp );
         }
         else
             terminalWidth = wbuf.ws_col;
