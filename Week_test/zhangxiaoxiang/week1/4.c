@@ -66,6 +66,7 @@ int main(void)
         pnew->file.fid = ++count;
         strcpy(pnew->file.filename, pt->d_name);
         pnew->file.mode = buf.st_mode;
+        
         pnew->file.size = buf.st_size;
 
         if ((fd = open(PATH, O_RDONLY)) == -1)
@@ -83,19 +84,25 @@ int main(void)
     }
     closedir(dir);
 
-    // printf("count = %d\n", count);
-
     pnow = list->next;
     if ((fd = open("./allfiles.dat", O_RDWR|O_CREAT|O_TRUNC, S_IRWXO)) == -1)
         my_err("open", __LINE__);
     while(pnow)
-    {
-        
-        if (write(fd, pnow->file.data, 256) < 0)
-            my_err("write", __LINE__);
+    {   
+        write(fd, &pnow->file.fid, sizeof(pnow->file.fid));
+        write(fd, "\n", sizeof("\n"));
+        write(fd, &pnow->file.filename, sizeof(pnow->file.filename));
+        write(fd, "\n", sizeof("\n"));
+        write(fd, &pnow->file.mode, sizeof(pnow->file.mode));
+        write(fd, "\n", sizeof("\n"));
+        write(fd, &pnow->file.size, sizeof(pnow->file.size));
+        write(fd, "\n", sizeof("\n"));
+        write(fd, pnow->file.data, 256);
+        write(fd, "\n", sizeof("\n"));
+
         pnow = pnow->next;
     }
     close(fd);
-    
+
     return 0;
 }
