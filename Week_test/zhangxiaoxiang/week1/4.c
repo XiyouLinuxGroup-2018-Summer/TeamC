@@ -52,15 +52,14 @@ int main(void)
     {
         if (strcmp(pt->d_name, ".") == 0 || strcmp(pt->d_name, "..") == 0)
             continue;
-        if (S_ISDIR(buf.st_mode))  
-            continue;
 
         strcpy(PATH, pathname);
         strcat(PATH, pt->d_name);
 
-        if (lstat(PATH, &buf) == -1)
+        if (stat(PATH, &buf) == -1)
             my_err("stat", __LINE__);
-        
+        if (S_ISDIR(buf.st_mode))  
+            continue;
         pnew = (FileList*)malloc(sizeof(FileList));
         pnew->next = NULL;
 
@@ -84,16 +83,19 @@ int main(void)
     }
     closedir(dir);
 
-    printf("count = %d\n", count);
+    // printf("count = %d\n", count);
+
     pnow = list->next;
+    if ((fd = open("./allfiles.dat", O_RDWR|O_CREAT|O_TRUNC, S_IRWXO)) == -1)
+        my_err("open", __LINE__);
     while(pnow)
     {
-        if ((fd = open("./allfiles.dat", O_RDWR|O_CREAT|O_TRUNC, S_IRWXO)) == -1)
-            my_err("open", __LINE__);
+        
         if (write(fd, pnow->file.data, 256) < 0)
             my_err("write", __LINE__);
         pnow = pnow->next;
     }
-
+    close(fd);
+    
     return 0;
 }
