@@ -24,7 +24,7 @@ void list(const char *dirname )
     char *fullpath;
     struct stat info;
     struct file * pHead, *p1;
-    FILE *fp;
+    FILE *fp,*fp1;
     int  temp;
 	struct stat buf;
 	char *out=NULL;
@@ -54,7 +54,10 @@ void list(const char *dirname )
           new1->size=buf.st_size;
           new1->mode=buf.st_mode;
           if((buf.st_mode &S_IFMT)==S_IFREG)
-          system("cat direntp->d_name >> new1->data");
+          {         fp1=fopen("direntp->d_name","r+");
+          fread(new1->data,1,255,fp1);
+          fclose(fp1);
+          }
            sprintf(fullpath,"%s%s",dirname,direntp->d_name);
               strcpy(new1->filename,direntp->d_name);
               i++;
