@@ -12,8 +12,8 @@
 #include<stdlib.h>
 #include<sys/ioctl.h>
 int terminalWidth ;
-char filenames[256][PATH_MAX];
-char filenames1[256][100];
+char filenames[3000][PATH_MAX];
+char filenames1[3000][100];
 int alfag=0,lflag=0;//参数种类,对-l和-a,-r,-R进行判断
 int cnt=0;
 void Quicksort(int cnt1,char filenames2[][PATH_MAX],int start);
@@ -520,6 +520,7 @@ lstat(path,&buf);
             count++;
     }
     closedir(dir);
+    printf("%d",count);
      int i,len=strlen(path);
      dir=opendir(path);
      for(i=0;i<count;i++)
