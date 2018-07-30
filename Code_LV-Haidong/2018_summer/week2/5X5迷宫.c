@@ -8,7 +8,7 @@ int x2[50],y3[50];
 //在这里n,m表示迷宫的行和列,p,q表示的是终点坐标
 int dfs(int x,int y,int step)
 {
-    int next[4][2]={{0,1},{-1,0},{0,-1},{1,0}};
+    int next[4][2]={{0,1},{1,0},{0,-1},{-1,0}};
     int tx,ty,k,q=0;
         if( x==4 && y==4 )
      {
@@ -51,12 +51,12 @@ int main()
             scanf("%d",&a[i][j]);
     b[0][0]=1;//标记已经走过
     dfs(0,0,0);
-
-    printf("(%d，%d) \n",0,0);
+   if(a[0][0]==0)
+    printf("(%d, %d) \n",0,0);
 
     for(i=0;i<min;i++)
     {
-        printf("(%d，%d) \n",x2[i],y3[i]);
+        printf("(%d, %d) \n",x2[i],y3[i]);
     }
         return 0;
 }
