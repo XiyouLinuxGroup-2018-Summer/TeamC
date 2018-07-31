@@ -430,11 +430,6 @@ int ls_prepare(char *path,int lflag)
     //获取文件/目录属性并赋值给buf，该函数和lstat一样，
     //只是当w为链接时，指代他本身，并不存在文件
 lstat(path,&buf);
-    /*	if(lstat(path,&buf)<0)		
-	{
-		fprintf(stderr,"stat error:%s\n",strerror(errno));
-		return -1;
-	}*/
     dir=opendir(path);
     while((ptr= readdir(dir))!=NULL)
     {
