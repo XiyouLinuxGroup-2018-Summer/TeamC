@@ -13,8 +13,9 @@
 #include <malloc.h>
 
 extern char ** environ;
+// 预定义的变量、显示各个环境变量的值
 
-int main(int argc, char * argv[])
+int main(int argc, char * argv[], char **envp)
 {
     int i;
 
@@ -22,10 +23,15 @@ int main(int argc, char * argv[])
     for (i = 0; i < argc; i++)
         printf("argv[%d] is %s\n", i, argv[i]);
 
-    printf("Enviroment:\n");
+    // printf("Enviroment:\n");
 
-    for (i = 0; environ[i] != NULL; i++)
-        printf("%s\n", environ[i]);
+    // for (i = 0; environ[i] != NULL; i++)
+    //     printf("%s\n", environ[i]);
+    // environ — array of character pointers to the environment strings
+
+    printf("\nEnvp from the main function third Arguement:\n");
+    for (i = 0; envp[i] != NULL; i++)
+        printf("%s\n", envp[i]);
 
     return 0;
 }
