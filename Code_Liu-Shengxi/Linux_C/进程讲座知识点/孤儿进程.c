@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
-int main()
+int main(void)
 {
     pid_t pid;
     //创建一个进程
@@ -14,7 +14,7 @@ int main()
         exit(1);
     }
     //子进程
-    if ( pid == 0 )
+    if (pid == 0)
     {
         printf("I am the childprocess.\n");
         //输出进程ID和父进程ID
@@ -22,11 +22,13 @@ int main()
         printf("I will sleep fiveseconds.\n");
         //睡眠5s，保证父进程先退出
         sleep(5);
+
         printf("pid:%d\tppid:%d\n", getpid(), getppid());
         printf("child process isexited.\n");
-    }//父进程
-    else{
-    
+    } //父进程
+    else
+    {
+
         printf("I am fatherprocess.\n");
         //父进程睡眠1s，保证子进程输出进程id
         sleep(1);
