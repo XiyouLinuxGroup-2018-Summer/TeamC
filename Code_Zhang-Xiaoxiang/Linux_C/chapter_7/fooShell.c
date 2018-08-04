@@ -47,10 +47,10 @@ int main(int argc, char * argv[], char ** envp)
 
     while(1)
     {
-        //signal(SIGINT, hanlder);                        // crtl + c 重新执行程序而不是屏蔽
-        //signal(SIGTTIN, SIG_IGN);
-        //signal(SIGTSTP, SIG_IGN);
-        //signal(SIGHUP, SIG_IGN);
+        signal(SIGINT, hanlder);                        // crtl + c 重新执行程序而不是屏蔽
+        signal(SIGTTIN, SIG_IGN);
+        signal(SIGTSTP, SIG_IGN);
+        signal(SIGHUP, SIG_IGN);
         memset(buf, '\0', sizeof(buf)); 
 
         InitForPrompt();                                // 为打印提示符获取相关信息
@@ -197,7 +197,7 @@ void InitForCmd(int argcount, char arglist[100][256])
     int isBackground = 0;       // 检查是否有后台运行标识符
     char * arg[argcount + 50];  // 真正会执行的参数列表
     memset(arg, '\0', sizeof(arg));
-    char * tempfile = "/tmp/pxShellPipeMakeTempFile";
+    char * tempfile = "/tmp/fooshelltemp";
     char * Minput = "/tmp/pxShellPipeVirtualInput";
     char * Moutput = "/tmp/pxShellPipeVirtualoutput";
     int fin, fout;
@@ -271,6 +271,9 @@ void InitForCmd(int argcount, char arglist[100][256])
             }
             j++;
         }
+
+        if (i != flag)
+            file_for_output[i][Ocount++] = tempfile;
         j++;
         // 调整参数列表
         for (int kk = n; kk < j; kk++)
@@ -287,33 +290,34 @@ void InitForCmd(int argcount, char arglist[100][256])
             }
         }
     }
-    // for 恢复重定向
-    int savestdin = dup(STDIN_FILENO);
-    int savestdout = dup(STDOUT_FILENO);
+    int flag_output;
     for (int i = 0, j = 0; i <= flag; i++)
     {
         // 输入流整合
         fin = open(Minput, O_CREAT | O_TRUNC | O_RDONLY, 0644);
         close(fin);
-        fin = open(Minput, O_RDWR | O_APPEND);
+        fin = open(Minput, O_RDWR | O_APPEND);                      // 打开模拟的输入缓存
         for (int t = 0; file_for_input[i][t] != NULL; t++)
         {
             int fd_new = open(file_for_input[i][t], O_RDONLY);
             if (fd_new < 0)
                 perror("open");
+            // printf("%d\t[file1] %s\n", __LINE__, Minput);
+            // printf("%d\t[file2] %s\n", __LINE__, file_for_input[i][t]);
             CopyFileC(fin, fd_new);
             close(fd_new);
         }
+        if (i == 0)
+            unlink(tempfile);
         if (flag)
         {
-            int fd_new = open(tempfile, O_RDWR | O_CREAT | O_TRUNC, 0644);
-            close(fd_new);
-            fd_new = open(tempfile, O_RDONLY | O_CREAT, 0644);
+            int fd_new = open(tempfile, O_RDONLY | O_CREAT, 0644);
             if (fd_new < 0)
                 perror("open");
             CopyFileC(fin, fd_new);
             close(fd_new);
         }
+        close(fin);
         pid = fork();
         int success = 0;
         switch(pid)
@@ -324,45 +328,54 @@ void InitForCmd(int argcount, char arglist[100][256])
                 return;
             case 0:
                 // 重定向处理
-                printf("Child Process beginning.\n");
-                if (flag || file_for_input[i][0])     // 如果有输入重定向
-                    dup2(fin, STDIN_FILENO);
-                if (flag || file_for_output[i][0])    // 如果有输出重定向
+                flag_output = 0;
+                if (flag || file_for_input[i][0])     // 如果有管道或输入重定向
                 {
-                    fout = open(tempfile, O_RDWR | O_CREAT | O_TRUNC, 0644);
-                    dup2(fout, STDOUT_FILENO);
+                    fin = open(Minput, O_RDONLY);
+                    if (dup2(fin, STDIN_FILENO) == -1)
+                        perror("dup2 > fin");
                 }
-                if (strcmp(arg[j], "cd") != 0 && strcmp(arg[j], "history") != 0)
+                for (int t = 0; file_for_output[i][t] != NULL; t++)     // 如果有管道或输出重定向
                 {
-                    if ((success = execvp(arg[j], arg + j)) == -1)
-                        perror("EXEC>");
+                    flag_output = 1;
+                    pid_t pidcc = fork();
+                    if (pidcc == 0)
+                    {
+                        if (redirect_flag[i][t] == 2)
+                            fout = open(file_for_output[i][t], O_RDWR | O_APPEND| O_CREAT , 0644);
+                        else
+                            fout = open(file_for_output[i][t], O_RDWR | O_TRUNC| O_CREAT , 0644);
+                        dup2(fout, STDOUT_FILENO);
+
+                        if (strcmp(arg[j], "cd") != 0 && strcmp(arg[j], "history") != 0)
+                        {
+                            if ((success = execvp(arg[j], arg + j)) == -1)
+                                perror("EXEC>");
+                        }
+                        if (strcmp(arg[j], "history") != 0)
+                            ShowHistory();
+                        close(fout);
+                        exit(0);
+                    }
+                    if (i != flag || isBackground)
+                        wait(&status);
                 }
-                close(fout);
-                exit(0);   
+                if (!flag_output)
+                {
+                    if (strcmp(arg[j], "cd") != 0 && strcmp(arg[j], "history") != 0)
+                    {
+                        if (execvp(arg[j], arg + j) == -1)
+                            perror("EXEC>");
+                    }
+                    if (strcmp(arg[j], "history") == 0)
+                        ShowHistory();
+                }
+                exit(0);
             default:
+                if (strcmp(arg[j], "cd") == 0)
+                    ChdirShell(arg + j);                                    
                 break;
         }
-        // waitpid(pid,&status,0);
-        // printf("Now Parent process:\n");
-        getchar();
-        getchar();
-        if (file_for_output[i][0] != NULL)
-        {
-            if((fout = open(tempfile, O_RDONLY | O_CREAT | O_TRUNC, 0644)) == -1)
-                perror("open");
-        }    
-        for (int t = 0; (success != -1) && file_for_output[i][t] != NULL; t++)
-        {
-            int fd_temp;
-            if (redirect_flag[i][t] == 2)    // >>
-                fd_temp = open(file_for_output[i][t], O_RDWR | O_APPEND | O_CREAT, 0644);
-            else if (redirect_flag[i][t] == 1)
-                fd_temp = open(file_for_output[i][t], O_RDWR | O_TRUNC |O_CREAT , 0644);
-            CopyFileC(fd_temp, fout);
-            close(fd_temp);
-        }
-        close(fout);                            // 关闭fd
-        wait(&status);
         // 获取到下一个有效参数
         while(arg[j] != NULL)
             j++;
@@ -377,12 +390,6 @@ void InitForCmd(int argcount, char arglist[100][256])
         else if (waitpid(pid, &status, 0) == -1)                // 父进程等待子进程结束
             perror("wait for child process error\n");
     }
-    // 恢复重定向
-    if (dup2(savestdout, STDOUT_FILENO) == -1)
-        fprintf(stderr, "recover stdout failed\n");
-    if (dup2(savestdin, STDIN_FILENO) == -1)
-        fprintf(stderr, "recover stdin failed \n");
-
     // 释放空间
     free(file_for_input);
     free(file_for_output);
@@ -394,15 +401,15 @@ void CopyFileC(int fd_orign, int fd_new)
     errno = 0;
     char buf[1024];
     memset(buf, '\0', sizeof(buf));
-    lseek(fd_new, 0, SEEK_END);
-    int k = lseek(fd_new, 0, SEEK_CUR);
-    printf("filelength: %d\n", k);
-    int len;
+    lseek(fd_new, 0, SEEK_SET);
+    int len, flag = 0;
     while((len = read(fd_new, buf, 1024)) != 0)
     {
-        printf("fd->new = %d\nbuf = %s\n", fd_new, buf);
+        flag = 1;
         write(fd_orign, buf, len);
     }
+    // if (flag == 0)
+    //     printf("ERROR: 文件为空或读取未成功\n");
     if (errno)
         perror("Copy Error");
 }
