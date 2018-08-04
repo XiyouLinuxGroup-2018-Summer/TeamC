@@ -1,2 +1,6 @@
 {
+    "files.associations": {
+        "history.h": "c",
+        "readline.h": "c"
+    }
 }

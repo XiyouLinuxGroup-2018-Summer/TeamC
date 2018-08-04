@@ -28,7 +28,9 @@ int main(int argc, char * argv[], char ** environ)
             printf("Child process is running\n");
             printf("My pid = %d, parent pid = %d\n", getpid(), getppid());
             printf("My uid = %d, gid = %d\n", getuid(), getgid());
-            execve("processimage", argv, environ);
+            execve("ls", argv, environ);
+            // if(execvp("lsk", argv) == -1)
+            //     perror("");
             printf("Process never go to here!\n");
             // 映像已被代替，永远不会被执行
             exit(0);
@@ -39,6 +41,6 @@ int main(int argc, char * argv[], char ** environ)
 
     int exitpid = wait(&stat_val);
     printf("child process id %d\n", exitpid);
-    // 防止子进程成为僵死进程
+    防止子进程成为僵死进程
     exit(0);
 }

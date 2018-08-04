@@ -24,8 +24,8 @@
 
 void print_prompt();                            // 打印提示符
 void get_input(char *);                         // 得到输出的命令
-void explain_input(char *, int *, char a[][]);  // 解析执行的命令
-void do_cmd(int, char a[][]);                   // 执行命令
+void explain_input(char *, int *, char a[100][256]);  // 解析执行的命令
+void do_cmd(int, char a[100][256]);                   // 执行命令
 int find_command(char *);                       // 查找命令中的可执行程序
 
 int main(int argc, char * argv[])
@@ -50,7 +50,8 @@ int main(int argc, char * argv[])
         print_prompt();                // 打印提示符
         get_input(buf);
         // cmd 为 exit 或 logout 退出程序
-        if (strcmp(buf, "exit") == 0 || strcmp(buf, "logout") == 0)
+        // 书上有问题，应该加上换行符
+        if (strcmp(buf, "exit\n") == 0 || strcmp(buf, "logout\n") == 0)
             break;
         // 
         for (i = 0; i < 100; i++)
@@ -188,7 +189,7 @@ void do_cmd(int argcount, char arglist[100][256])
     // 查看命令行是否有后台运行符
     for (i = 0; i < argcount; i++)
     {
-        if (strncmp(arg[i], "&, 1") == 0)
+        if (strncmp(arg[i], "&", 1) == 0)
         {
             if (i == argcount - 1)     // 如果后台运行标志符在最后
             {
@@ -220,7 +221,7 @@ void do_cmd(int argcount, char arglist[100][256])
             if (arg[i + 1] == NULL)
                 flag++;
         }
-        if (strcmp(arg[i], '|') == 0)
+        if (strcmp(arg[i], "|") == 0)
         {
             flag++;
             how = have_pipe;
@@ -241,7 +242,7 @@ void do_cmd(int argcount, char arglist[100][256])
     {
         for (i = 0; arg[i] != NULL; i++)
         {
-            if (strcmp (arg[i], "<") == 0)
+            if (strcmp (arg[i], ">") == 0)
             {
                 file = arg[i + 1];
                 // 确定文件名
@@ -324,7 +325,63 @@ void do_cmd(int argcount, char arglist[100][256])
             }
             break;
         case 3:
-            if(pid )
-    }
-}
+            // 命令中含有管道
+            if(pid == 0)
+            {
+                int pid2;
+                int status2;
+                int fd2;
 
+                // 创建子进程2
+                if ((pid2 == fork()) < 0)
+                {
+                    printf("fork2 error\n");
+                    return;
+                }
+                // 子进程开始执行
+                else if (pid2 == 0)
+                {
+                    if (!(find_command(arg[0])))
+                    {
+                        printf("%s: command not found\n", arg[0]);
+                        exit(0);
+                    }
+                    fd2 = open("/tmp/youdonotknowfile", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                    dup2(fd, 1);    // 重定向输出
+                    execvp(arg[0], arg);
+                    // close(fd2);
+                    exit(0);        // 子进程2退出，不需要回复重定向
+                }
+
+                if (waitpid(pid2, &status2, 0) == -1)
+                    printf("wait for child process error\n");
+            
+                if (!(find_command(argnext[0])))
+                {
+                    printf("%s: command not found\n", argnext[0]);
+                    exit(0);
+                }
+                fd2 = open("/tmp/youdonotknowfile", O_RDONLY);
+                dup2(fd2, 0);       // 重定向输入
+                execvp(argnext[0], argnext);
+
+                // 删除临时文件
+                if (remove("/tmp/youdonotknowfile"))
+                    printf("remove error\n");
+                exit(0);            // 子进程0退出
+            }
+            break;
+        default:
+            break;
+    }
+
+    // 如果后台执行&，打印子进程id, 父进程直接返回
+    if (background == 1)
+    {
+        printf("[process id %d]\n", pid);
+        return;
+    }
+    // 父进程等待子进程结束
+    if (waitpid(pid, &status, 0) == -1)
+        printf("wait for child process error");
+}
