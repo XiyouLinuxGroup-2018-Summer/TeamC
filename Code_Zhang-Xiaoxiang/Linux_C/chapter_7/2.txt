@@ -1,0 +1,23 @@
+总用量 140
+-rw-r--r-- 1 xuanc xuanc   249 8月   4 15:23 1.txt
+-rw-r--r-- 1 xuanc xuanc     0 8月   4 15:53 2.txt
+-rw-r--r-- 1 xuanc xuanc   792 7月  31 15:21 7-10_studyuid.c
+-rw-r--r-- 1 xuanc xuanc  1082 7月  31 16:22 7-11_mynice.c
+-rw-r--r-- 1 xuanc xuanc 10299 8月   2 09:13 7-12_myshell.c
+-rw-r--r-- 1 xuanc xuanc   773 7月  30 14:15 7-1_fork.c
+-rw-r--r-- 1 xuanc xuanc   824 7月  30 14:27 7-2_fork2.c
+-rw-r--r-- 1 xuanc xuanc   913 7月  30 15:57 7-3_fork3.c
+-rw-r--r-- 1 xuanc xuanc  1537 7月  30 16:30 7-4_diffork.c
+-rw-r--r-- 1 xuanc xuanc  1707 7月  30 16:55 7-5_daemon.c
+-rw-r--r-- 1 xuanc xuanc   877 7月  31 09:59 7-6_env.c
+-rw-r--r-- 1 xuanc xuanc  1259 8月   3 15:20 7-7_execve.c
+-rw-r--r-- 1 xuanc xuanc   637 7月  31 10:41 7-7_processimage.c
+-rw-r--r-- 1 xuanc xuanc  1466 7月  31 11:10 7-8_wait.c
+-rw-r--r-- 1 xuanc xuanc   531 7月  31 15:09 7-9_getpid.c
+-rw-r--r-- 1 xuanc xuanc     0 8月   4 09:16 a
+-rwxr-xr-x 1 xuanc xuanc 31976 8月   4 15:52 a.out
+-rw-r--r-- 1 xuanc xuanc 13660 8月   4 15:35 fooShell.c
+-rw-r--r-- 1 xuanc xuanc 13354 8月   4 11:13 pxShell.c
+-rw-r--r-- 1 xuanc xuanc   510 8月   3 20:50 testchdir.c
+-rw-r--r-- 1 xuanc xuanc   345 8月   2 17:50 testcolor.c
+-rw-r--r-- 1 xuanc xuanc   935 8月   3 21:29 testDup2.c
