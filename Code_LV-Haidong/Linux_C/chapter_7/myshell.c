@@ -304,7 +304,7 @@ void do_cmd(char *list[])
             param.backgroud = 1;
         }
     }
-    if (flag == 0)
+    if (flag == 0 && param.backgroud == 0)
     {
         pid = fork();
         if (pid == 0)
@@ -316,13 +316,7 @@ void do_cmd(char *list[])
     if (param.backgroud == 1) //如果命令中有后台执行的程序
     {
         pid = fork();
-        if (pid == 0)
-        {
-            find_command(list);
-            exit(0);
-        }
-        else
-            printf("(process id %d )\n", pid);
+        printf("process id %d\n",pid);
         return;
     }
     if(pid_flag == 0)
@@ -408,10 +402,10 @@ int main(int argc, char **argv)
         perror("malloc failed");
         exit(-1);
     }
-/*        signal(SIGINT, SIG_IGN);//屏蔽掉信号,ctrl+c
+        signal(SIGINT, SIG_IGN);//屏蔽掉信号,ctrl+c
         signal(SIGQUIT, SIG_IGN);
-        signal(SIGSTOP, SIG_IGN);
-        signal(SIGTSTP, SIG_IGN);  */
+        signal(SIGSTOP, SIG_IGN);//ctrl+z发出信号
+        signal(SIGTSTP, SIG_IGN);  
     while (1)
     {
         memset(buf, 0, 1200);

@@ -1,0 +1,34 @@
+首先,exec族是为了执行一个可执行程序,然后代替当前的系统映像
+通常它的使用，都是在子进程之中
+exec族的调用并没有生成新进程，只是代码段被替换,放弃程序之前的堆栈段和数据段，为程序分配一个新的数据段和栈堆段
+
+execve是系统调用，其他5个都是库函数
+#include <unistd.h>
+
+extern char **environ;
+
+int execl(const char *path, const char *arg, ...                       /* (char  *) NULL */);
+int execlp(const char *file, const char *arg, ...                       /* (char  *) NULL */);
+int execle(const char *path, const char *arg, ...                       /*, (char *) NULL, char * const envp[] */);
+int execv(const char *path, char *const argv[]);
+int execvp(const char *file, char *const argv[]);
+int execvpe(const char *file, char *const argv[],                       char *const envp[]);
+
+
+遇到空就停止
+execvp是根据环境变量来进行文件的执行
+
+exec系统调用会从当前进程中把当前程序的机器指令清除，然后在空的进程中载入调用时指定的程序代码，最后运行这个新的程序。
+
+execv函数通过路径来调用可执行文件作为新的进程印象，他的argv参数必须以NULL结尾的字符串指针数组
+execve path为路径名，随后的argv和argc是与命令行接受的相同
+
+execl在传递argv参数是必须要是独立的参数，以一个空指针作为结束
+
+execle 需要显示指定环境变量
+
+execvp与其他的不同的是参数filename,如果包括/则识别为路径，不然就去PATH环境变量目录中寻找可执行的文件
+
+遇到错误返回1
+exec族可执行二进制的可执行文件，但是shell脚本要求必须书写幻术,即第一行的命令解释 #!/bin/bash 
+//以/bin/bash来运行这个脚本
