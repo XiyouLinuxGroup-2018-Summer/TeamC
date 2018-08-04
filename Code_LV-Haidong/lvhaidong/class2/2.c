@@ -2,14 +2,14 @@
 #include<unistd.h>
 int main()
 {
-    for(int i = 0;i< 2; i++)
+    for(int i = 0;i< 1; i++)
     {
         pid_t pid = fork();
-        printf("hell0,word\n");
+        printf("hell0,word");
     }
     return 0;
 }
-//一共执行六次hello,word
+//一共执行八次hello,word，因为printf的换行符是为了清除缓存，没有的话，第一次循环的时候，产生的两个进程会保存第一次的hello,word
 //在产生第一个子进程的同时,父进程执行了一次printf
 //子进程执行了一次printf,
 //第二次执行时，然后之前的父进程再执行一次，子进程在执行一次,新产生的再执行两次
