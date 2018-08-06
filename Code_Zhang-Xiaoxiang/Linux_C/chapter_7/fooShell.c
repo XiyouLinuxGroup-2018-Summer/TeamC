@@ -15,14 +15,14 @@
 #include <readline/readline.h>      // 使用 readline 处理 tab 补全(默认)
 #include <readline/history.h>       // 处理 history
 
-#define CLOSE "\033[0m"                 // 关闭所有属性
-#define BLOD  "\033[1m"                 // 强调、加粗、高亮
-#define BEGIN(x,y) "\033["#x";"#y"m"    // x: 背景，y: 前景
+
+#define CLOSE "\001\033[0m\002"                 // 关闭所有属性
+#define BLOD  "\001\033[1m\002"                 // 强调、加粗、高亮
+#define BEGIN(x,y) "\001\033["#x";"#y"m\002"    // x: 背景，y: 前景
 
 struct passwd *psd;                     
 char hostname[50], cwd[PATH_MAX],temppath[PATH_MAX], flagforuser;
 char oldcwd[PATH_MAX] = "";
-int num_of_pipe = 0;
 
 void InitForPrompt();                   // 打印提示符
 int  GetInput(char *);                  // 获取输入, 输入无效返回-1，否则返回0
@@ -81,7 +81,6 @@ void InitForPrompt()
     gethostname(hostname, 50 - 1);       // 获取主机名
     hostname[49] = '\0';
     getcwd(cwd, PATH_MAX - 1);          // 获取当前工作目录
-    strcpy(oldcwd, cwd);
     strcat(temppath, psd->pw_name);
     int len = strlen(temppath);
     if (strncmp(cwd, temppath, len) == 0)
@@ -96,12 +95,13 @@ void InitForPrompt()
 int GetInput(char * buf)
 {    
     int len = 0;
+    fflush(stdout);
     if (getuid())
         flagforuser = '$';
     else
         flagforuser = '#';
     char temp[300];                     // 不把字符串当成参数传入 readline ， 上下切换命令会导致格式混乱
-    sprintf(temp, BEGIN(49,33)"%s@%s>"BEGIN(49,34)" %s"BLOD CLOSE"%c ", hostname, psd->pw_name, temppath, flagforuser);
+    sprintf(temp, BEGIN(49,33) "%s@%s>" BEGIN(49,34) " %s" BLOD CLOSE "%c ", hostname, psd->pw_name, temppath, flagforuser);
     char * istream = readline(temp);
     if (strcmp(istream, "") == 0)
         return -1;
@@ -126,32 +126,35 @@ int GetInput(char * buf)
 
 void ChdirShell(char * argpath[])       // 只允许一个路径
 {
-    char newpath[PATH_MAX];
     if (argpath[1] != NULL && argpath[2] != NULL)        // 只支持一个或零个参数
     {
         printf("too many arguements\n");
         return;
     }
+    if (argpath[1] != NULL && strcmp(argpath[1], "~") == 0)
+        argpath[1] = NULL;
     if (argpath[1] == NULL)
     { 
         char tempforhome[PATH_MAX] = "/home/";
         strcat(tempforhome, psd->pw_name);
         if(chdir(tempforhome) == -1)
-            perror("");
+            perror("chdir");
+        strcpy(oldcwd, cwd);
     }
     else
     {
         if (strcmp(argpath[1], "-") == 0)
         {
-            getcwd(newpath, PATH_MAX - 1);
-            newpath[strlen(newpath)] = '\0';
+            if (oldcwd[0] == '\n')
+                return;
+            // printf("oldcwd:%s\n", oldcwd);
             if (chdir(oldcwd) == -1)
                 perror("chdir");            
         }
         else if (chdir(argpath[1]) == -1)
             perror("chdir");
+        strcpy(oldcwd, cwd);
     }
-    strcpy(oldcwd, newpath);
 }
 
 void ShowHistory()
@@ -387,8 +390,10 @@ void InitForCmd(int argcount, char arglist[100][256])
             printf("[process id %d]\n", pid);
             break;
         }
-        else if (waitpid(pid, &status, 0) == -1)                // 父进程等待子进程结束
-            perror("wait for child process error\n");
+        // else if (waitpid(pid, &status, 0) == -1)                // 父进程等待子进程结束
+            // perror("wait for child process error\n");
+        else 
+            waitpid(pid, &status, 0);
     }
     // 释放空间
     free(file_for_input);
@@ -402,14 +407,11 @@ void CopyFileC(int fd_orign, int fd_new)
     char buf[1024];
     memset(buf, '\0', sizeof(buf));
     lseek(fd_new, 0, SEEK_SET);
-    int len, flag = 0;
+    int len;
     while((len = read(fd_new, buf, 1024)) != 0)
     {
-        flag = 1;
         write(fd_orign, buf, len);
     }
-    // if (flag == 0)
-    //     printf("ERROR: 文件为空或读取未成功\n");
     if (errno)
         perror("Copy Error");
 }
