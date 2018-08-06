@@ -1,7 +1,7 @@
 #include<stdio.h>
 int main()
 {
-    printf("%d\n", &(&2[(int*)3])[5]);
+    printf("%d\n", (&4[(int*)3]));
     return 0;
 }
 //首先它的输出是39,先将3以强制转换为int * 类型
