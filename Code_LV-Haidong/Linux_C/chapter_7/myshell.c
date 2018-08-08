@@ -60,8 +60,6 @@ void get_ifnput(char *buf)
         exit(-1);
     }
     strcpy(buf, isstarm);
-    //buf[pathlen]='\n';
-    buf[pathlen++] = '\0';
     if(strcmp(buf,"")==0)
     strcpy(buf,"\n");
     free(isstarm);
@@ -70,7 +68,9 @@ void get_ifnput(char *buf)
 void explain(char *buf, char *list[256])
 {
     i = 0;
+    int k=0;
     char *p = buf;
+    int g=sizeof(buf);
     while (1)
     {
         if (strcmp(buf, "cd") == 0)
@@ -83,19 +83,26 @@ void explain(char *buf, char *list[256])
         }
         if (p[0] == '\n')
             break;
-        if (p[0] == ' ')
-            p++;
-        else
+        while(g--)
         {
-            list[i] = strtok(buf, " "); //将他们的空格分开i
+             if (p[k] == ' ')
+          {
+             p[k] = '|';
+             k++;
+             continue;
+          }
+        }
+        
+            list[i] = strtok(buf, "|"); //将他们的空格分开i
            if(strcmp(list[i],"ls")==0)
            {
               list[i+1]="--color=auto";
                i++;
            }
             i++;
-            while ((list[i] = strtok(NULL, " ")) != NULL && strcmp(list[i], "\n") != 0)
+            while ((list[i] = strtok(NULL, "|")) != NULL && strcmp(list[i], "\n") != 0)
             { //在这里需要注意strtok的返回值为NULL
+                 printf(" list %s \n",list[i]); 
                 if(strcmp(list[i],"grep")==0)
                 {
                     list[i+1]="--color=auto";
@@ -103,7 +110,6 @@ void explain(char *buf, char *list[256])
                 }
                 i++;
             }
-        }
         if (list[i] == NULL)
         {
             break;
@@ -382,12 +388,10 @@ void shell_cd(char *path[])
     {
         strcpy(path[1], oldpwd[o]);
     }
-    getcwd(oldpwd[o], sizeof(oldpwd[o]) - 1); //保存绝对路径
-    //printf("%s\n",oldpwd[o]);
-    o++;
+    getcwd(oldpwd[o], sizeof(oldpwd[o])); //保存绝对路径
+    strcat(oldpwd[o],"/");
     if (chdir(path[1]) < 0) //chdir可以改变当前的工作目录，fchdir用来将当前目录改为由文件描述符所指定的目录
     {
-        printf("%s\n",path[1]);
         perror("cd");
     }
 }
