@@ -62,6 +62,5 @@ int main(void)
 
     sleep(5);
     pthread_exit(0);  
-    // return 0;
-
+    return 0;
 }
