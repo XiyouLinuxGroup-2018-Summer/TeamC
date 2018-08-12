@@ -12,14 +12,16 @@ void * thread1(void * arg)///线程函数
 {
     pthread_t thid = pthread_self();
     printf("Current thread is ID is %u \n",thid);
-    pthread_once(&once,run);//调用线程函数，保证run函数在进程中只执行了一次
+    run();
+   // pthread_once(&once,run);//调用线程函数，保证run函数在进程中只执行了一次
     printf("thread1 ends \n");
 }
 void * thread2(void * arg)///线程函数
 {
     pthread_t thid = pthread_self();
     printf("Current thread is ID is %u \n",thid);
-    pthread_once(&once,run);
+    run();
+    //pthread_once(&once,run);
     printf("thread2 ends \n");
 }
 int main()
