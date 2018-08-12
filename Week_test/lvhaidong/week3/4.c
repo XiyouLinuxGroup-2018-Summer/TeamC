@@ -10,9 +10,9 @@
 pthread_mutex_t mutex;
 pthread_cond_t  cond;
 
-int flag=0;
-int view=0;
 int gflag=0;
+int view=0,view1=0;
+int temp1=0;
 int  mylseek(int fd)
 {
      int len;
@@ -27,20 +27,14 @@ void * thread1(void * arg)//写的进程
 {
      while(1)
     {
-        if(flag == 0)
-        { 
+        
             pthread_mutex_lock (&mutex);
-            flag = 1;
-            pthread_cond_signal(&cond);
             FILE *fp;
-            int fd,temp,len=0;                                                                                                                      
+            int fd,temp=0,len=0;                                                                                                                      
             char *write_buf;
             write_buf=(char *)malloc(30);
-            fp=popen(" head -c 10 /dev/random | base64","r"); //调用系统函数生成随机字符串
-            fgets(write_buf,10,fp); //调用系统函数生成随机字符串
-            printf("wirte  %s\n",write_buf);
-            if(gflag>=1)
-                system("cp Hello,Word1.txt Hello,Word.txt");
+            fp=popen(" head -c 8 /dev/random | base64","r"); //调用系统函数生成随机字符串
+            fgets(write_buf,8,fp); //调用系统函数生成随机字符串
             gflag+=1;
             fd = open("Hello,Word.txt",O_RDWR | O_CREAT | O_APPEND,0664);
             if(fd == -1)
@@ -64,66 +58,83 @@ void * thread1(void * arg)//写的进程
             }
              printf("now  %d\n",len);
             lseek(fd,view,SEEK_SET);
-            temp = write(fd, write_buf,10);
-            if(temp !=  10)
+            pthread_cond_wait(&cond,&mutex);
+            printf("wirte  %s\n",write_buf);
+            printf("----------------\n");
+            temp = write(fd, write_buf,7);
+            view=view+7;
+            if(temp !=  7)
             {
                 printf("error write");
                 exit(1);
             }
             close(fd);
             free(write_buf);
-            pthread_cond_wait(&cond,&mutex);
             pthread_mutex_unlock(&mutex);
-            sleep(2);
-       }
+            sleep(4);
+       
     }     
 }
 void * thread2(void * arg)
 {
     while(1)
     {
-        if(flag == 1)
-       {
-            pthread_mutex_lock (&mutex);
-            flag = 0;
-            pthread_cond_signal(&cond);
-            int fd;
-            int ret,temp;
+             pthread_mutex_lock (&mutex);
+            int fd=0,many=0;
+            int ret=0,temp=0,len=0;
             char *red_buf,*restart_buf;
             red_buf=(char *)malloc(61);
             restart_buf=(char *)malloc(200);
-            memset(red_buf,0,sizeof(red_buf));
-            memset(restart_buf,0,sizeof(restart_buf));
             fd = open("Hello,Word.txt",O_RDONLY | O_CREAT );
-            if(mylseek(fd)>100)
+          if(mylseek(fd) > 0)
+          {
+                if((mylseek(fd))>100 )
             {
                 printf("文件超过容量，遇到错误");
                 exit(1);
             }
-            temp=strlen(red_buf);
-            lseek(fd,view,SEEK_SET);
-            ret = read(fd,red_buf,6);
+            lseek(fd,view1,SEEK_SET);
+            pthread_cond_wait(&cond,&mutex);
+            ret = read(fd,red_buf,7);          
             printf("read %s\n",red_buf);
+            printf("----------------\n");
+            view1=view1+7;
             if(strlen(red_buf) > 100)
             {
                 printf("error red_buf");
                 exit(1);
             }
-            lseek(fd,6+view,SEEK_SET);
-            ret = read(fd,restart_buf,4);
-            view=view+2;
+            close(fd);
+            fd = open("Hello,Word.txt",O_RDWR | O_CREAT |O_APPEND,0664 );
+            len=mylseek(fd);
+            lseek(fd,view1,SEEK_SET);
+            many=len-view1;//读取之后的长度
+            ret = read(fd,restart_buf,many);
+            printf("many %d\n",many);
             printf("restart %s\n",restart_buf);
+            printf("----------------\n");
             close(fd);
-            fd = open("Hello,Word1.txt",O_RDWR | O_CREAT |O_APPEND,0664 );
-            lseek(fd,view,SEEK_SET);
-            write(fd,restart_buf,strlen(restart_buf));
+            fd = open("Hello,Word1.txt",O_RDWR | O_CREAT |O_TRUNC,0664 );
+            temp1  = strlen(restart_buf);
+            printf("temp1 %d\n",temp1);
+            lseek(fd,0,SEEK_SET);
+            write(fd,restart_buf,temp1);
             close(fd);
+            view=many;//删除之后的长度
+            view1=0;//从头开始读取
+            gflag+=1;
+            if(gflag>=1)
+            {
+                system("cp Hello,Word1.txt Hello,Word.txt");
+                system("rm -rf Hello,Word1.txt");
+            }
             free(red_buf);
             free(restart_buf);
-            pthread_cond_wait(&cond,&mutex);
+             pthread_cond_wait(&cond,&mutex);
             pthread_mutex_unlock(&mutex);
-            sleep(2);
-       }
+            sleep(1);
+          }
+       
     }
 }
 int main()
@@ -131,8 +142,12 @@ int main()
     pthread_t thid1,thid2;
     pthread_mutex_init(&mutex,NULL);
     pthread_cond_init(&cond,NULL);
-    pthread_create(&thid1,NULL,thread1,NULL);
+    //pthread_create(&thid1,NULL,thread1,NULL);
     pthread_create(&thid2,NULL,thread2,NULL);
+
+    do{
+        pthread_cond_signal (&cond);
+    }while(1);
     sleep(50);
     pthread_cond_destroy(&cond);
     pthread_mutex_destroy(&mutex);
