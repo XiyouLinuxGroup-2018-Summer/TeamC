@@ -1,0 +1,18 @@
+//accept其中addr用来保存发起连接要求的主机的地址和端口
+//addrlen 是addr所指向的结构体的大小
+accept执行成功的话将会创建一个新的套接字,并且为这个新的套接字分配一个描述符
+返回这个新的描述符,进程可以通过这个来与客户端交换数据
+一般s所指定的套接子会被设置为阻塞方式,且连接请求队列会为空
+accpet函数会被阻塞到有连接请求为止
+
+int client_fd;
+int client_len;
+struct sockaddr_in client_addr;
+
+client_len = sizeof(struct sockaddr_in);
+client_fd = accpet(sock_fd,(struct sockaddr *)&client_addr,&client_len);
+if(client < 0)
+{
+    perror("accept");
+    exit(1);
+}

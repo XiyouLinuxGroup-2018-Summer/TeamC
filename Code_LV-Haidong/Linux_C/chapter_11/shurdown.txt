@@ -1,0 +1,14 @@
+函数close 用来关闭一个套接字描述符，与关闭文件描述符是类似的
+int close(int fd);
+fd为一个套接字描述符号,该函数关闭一个套接字
+执行成功返回0,出错返回-1,错误代码存入errno中
+
+函数shutdown
+shutdown 用于关闭一个套接字描述符号
+#include<sys/socket.h>
+int shutdown(int s,int how)
+how可以有更加精确的控制
+SHUT_RD:连接中的读通道关闭，不能接受任何的数据,接受缓冲区中还有未读取的数据也将被丢弃,不过依然可以在套接字上发送数据
+SHUT_WR:连接上的写通道关闭,进程不能再发送任何数据,可以接收
+SHUT_RDWR: 读写都关闭
+

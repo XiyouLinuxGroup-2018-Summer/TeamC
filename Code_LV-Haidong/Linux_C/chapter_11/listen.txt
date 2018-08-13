@@ -1,0 +1,5 @@
+if(listen(sock_fd, LISTEN_NUM) < 0)
+{
+    perror("listen");
+    exit(1);
+}

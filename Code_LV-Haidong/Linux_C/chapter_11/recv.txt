@@ -1,0 +1,22 @@
+recv用于在TCP套接字上接受数据,
+#include <sys/types.h>
+#include <sys/socket.h>
+ssize_t recv(int s,void *buf,size_t len,int flags);
+
+类似于read 从s所指定的套接字描述符（必须是面向连接的套接字)
+接受数据并保存到参数buf所指定的缓冲区，len为缓冲区大小
+flags为控制选项
+- MSG——OOB 请求接受带外数据
+- MSG——PEEK 只查看数据而不读出 只从缓冲区中读取
+- MSG_WAITALL 只在接受缓冲区满时候才返回
+数据包太长缓冲区放不下，剩下的数据可能被丢弃
+
+
+
+
+char recv_buf[3000];
+if(recv(conn_fd,recv_buf,sizeof(recv_buf),0) < 0)
+{
+    perror("recv");
+    exit(1);
+}

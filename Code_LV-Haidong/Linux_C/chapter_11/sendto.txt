@@ -1,0 +1,26 @@
+首先函数sendto 用来在UDP套接字上发送数据,
+#include<sys/types.h>
+#include<sys/socket.h>
+ssize_t sendto(int s, const void * msg,size_t len,int flags.const struct sockaddr *to,socklen_t to len)
+
+//UDP  sendto不需要套接字处于连接状态,该函数经常用来发送UDP数据,因为没有连接，所以使用sendto的时候，必须指定数据的目的地址
+  参数msg 指向待发送数据的缓存区,参数len指定了待发送数据的长度,参数flags是控制选择项，
+  
+  char send_bug[BUFF];
+  struct  sockaddr_in dest_addr;
+
+  //设置目的地
+  memset(&dest_addr,0,sizeof(struct sockaddr_in));
+  dest_addr.sin_family = AF_INET;    //IPV4
+  dest_addr.sin_port = htons(DEST_PORT);//UDP指定数据的目的地址
+  //inet函数在11.2.10介绍
+  if(inet_aton("172.17.242.131",&dest_addr,sin_addr) < 0)
+{
+    perror("inet_aton");
+    exit(1);
+}
+if(sendto(sock_fd,send_buf,len,0,(struct sockaddr *)&dest_addr,sizeof(struct sockaddr_in)) < 0)
+{
+    perror("sendto");
+    exit(1);
+}

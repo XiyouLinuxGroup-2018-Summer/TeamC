@@ -1,0 +1,11 @@
+struct sockaddr_in serv_addr;
+memset(&serv_addr,0,sizeof(struct sockaddr_in));
+serv_addr.sin_family = AF_INET;
+serv_addr.sin_prot= htons(80);
+serv_addr.sin.s_addr = htonl(INADDR_ANY);
+//指定为INADDR_ANY可以绑定到任何的网络接口之中
+if( bind(sock_fd,(struct sockaddr *)&sserv_addr,sizeof(struct sockaddr_in)) < 0 )
+{
+        perror("bind");
+        exit(1);
+}
