@@ -105,7 +105,7 @@ int main(int argc, char * argv[])
 
         if (strcmp("-a", argv[i]) == 0)
         {
-            if (inet_aton(argv[i], &serv_addr.sin_addr.s_addr) == 0)
+            if (inet_aton(argv[i+1], &serv_addr.sin_addr) == 0)
             {
                 printf("invalid server ip address\n");
                 exit(1);
@@ -127,7 +127,7 @@ int main(int argc, char * argv[])
         my_err("socket", __LINE__);
 
     // 向服务端发送连接请求
-    if (connect(conn_fd, (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in) < 0))
+    if (connect(conn_fd, (struct sockaddr*)&serv_addr, sizeof(struct sockaddr)) < 0)
         my_err("connect", __LINE__);
 
     // 输入用户名和密码
@@ -135,7 +135,7 @@ int main(int argc, char * argv[])
     input_userinfo(conn_fd, "password");
 
     // 读取欢迎信息并打印出来
-    if ((ret = my_recv(conn_fd, recv_buf, sizeof(recv_buf)) < 0)
+    if ((ret = my_recv(conn_fd, recv_buf, sizeof(recv_buf))) < 0)
     {
         printf("data is too long\n");
         exit(1);
