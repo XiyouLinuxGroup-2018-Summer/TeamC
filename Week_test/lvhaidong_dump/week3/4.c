@@ -86,6 +86,11 @@ void * thread2(void * arg)
             red_buf=(char *)malloc(61);
             restart_buf=(char *)malloc(200);
             fd = open("Hello,Word.txt",O_RDONLY | O_CREAT );
+            if(mylseek(fd)<0)
+            {
+                printf("文件已经没有内容");
+                exit(1);
+            }
           if(mylseek(fd) > 0)
           {
                 if((mylseek(fd))>100 )
@@ -110,13 +115,11 @@ void * thread2(void * arg)
             lseek(fd,view1,SEEK_SET);
             many=len-view1;//读取之后的长度
             ret = read(fd,restart_buf,many);
-            printf("many %d\n",many);
             printf("restart %s\n",restart_buf);
             printf("----------------\n");
             close(fd);
             fd = open("Hello,Word1.txt",O_RDWR | O_CREAT |O_TRUNC,0664 );
             temp1  = strlen(restart_buf);
-            printf("temp1 %d\n",temp1);
             lseek(fd,0,SEEK_SET);
             write(fd,restart_buf,temp1);
             close(fd);

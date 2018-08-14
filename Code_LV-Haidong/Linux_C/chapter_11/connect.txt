@@ -1,0 +1,15 @@
+//使用 ctrl+s 假死
+
+
+
+struct sockaddr_in serv_addr;
+memset(&serv_addr,0,sizeof(struct sockaddr_in));//将所有的字段清零
+serv_addr.sin_family=AF_INET;//TCP/IP的地址类型
+serv_addr.sin_prot = htons(80);//htons是子街顺序转换函数,设置端口号
+//inet_aton函数将一个字符串转换成一个网络地址,一个网络地址给予第二个参数
+if(inet_aton("172.17.242.131",&serv_addr.sin_addr) < 0)
+{
+    perror("inet_aton");
+    exot(1);
+}
+//使用sock_fd套接字连接到serv_addr指向的地址上，已经定义

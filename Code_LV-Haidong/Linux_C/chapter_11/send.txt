@@ -1,0 +1,22 @@
+函数send 用来TCP套接字上发送数据
+#include<sys/types.h>
+#include<sys/socket.h>
+ssize_t send(int s,const void * msg,size_t len,int flags);
+//只能对连接状态的套接字使用,参数S为已经建立好连接的套接子描述符,即accept函数的返回值,参数msg指向存放待发送数据的缓冲区，len为待发数据的长度
+flags为控制选项
+一般为0或者其他值
+MSG_OOB在指定的套接字上发送带外数据,该类型的套接子必须支持带外数据(SOCK_STPREAM);
+带外数据，表示相连的每一对套接字之间有的快速通道
+在网络数据没到达之前提前到达
+MSG_DONTROUTE：通过最直接的路径发送数据，忽视下层协议的路由设置
+
+注:执行成功只是说明把数据写入到套接子的缓冲区中,并不表示数据已经成功通过网络发送到目的地，
+套接字为阻塞情况下的使用:
+#define BUFF 3500
+char sent_buf[BUFF];
+
+if(send(conn_fd,send_buf,len,0) < 0)//len为待发送数据的长度
+{
+    perror("send");
+    exit(1);
+}

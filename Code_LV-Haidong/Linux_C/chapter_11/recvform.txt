@@ -1,0 +1,23 @@
+recvfrom 用来在UDP套接字上接受数据,
+#include < sys/types.h >
+#include < sys/socket.h >
+ssize_t recvform (int s,void * buf,size_t len ,int flags,struct sockaddr * from,socklen_t * fromlen);
+
+recvform可以从无连接的套接字UDP上接受数据
+buf 指向接受缓冲区,len指定了缓冲区的大小,flags是控制选项
+如果from 非空,且套接字不是面向连接的,recvform返回时候,参数form保存数据的源地址,参数formlen在调用recvform前为参数form的长度
+调用之后recvfrom后将保存form的实际大小
+
+执行成功的话返回数据的字节数,出错返回-1
+
+char recv_buf[BUFF];
+struct sockaddr_in src_addr;
+int src_len;
+
+src_len = sizeof(struct sockaddr_in);
+if(recvform(sock_fd,recv_buf,sizeof(recv_buf),0,(struct sockaddr *)&src_addr,&src_len) < 0)
+{
+    perror("again_recvform");
+    exit(1);
+}
+
