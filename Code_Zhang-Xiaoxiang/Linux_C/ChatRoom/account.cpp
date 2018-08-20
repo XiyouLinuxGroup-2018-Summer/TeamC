@@ -6,7 +6,7 @@ Account* SearchAccId(int id, Account * acc)
     int ret;
     char sql[128];
     acc = (Account*)malloc(sizeof(Account));
-    if((mysql_real_connect(_mysql, NULL, MS_USER, MS_PASS, Data_ChatBase, 0, NULL, 0)) == NULL) 
+    if((mysql_real_connect(_mysql, NULL, MS_USER, MS_PASS, Data_ChatBase, 0, NULL, 0)) == NULL)
     {
         fprintf(stderr, "%d: %s\n", __LINE__, mysql_error(_mysql));
         return NULL;
@@ -25,7 +25,7 @@ Account* SearchAccId(int id, Account * acc)
     {
         if (mysql_field_count(_mysql) == 0)
         {
-            free(acc);                 
+            free(acc);
             mysql_close(_mysql);
             return NULL;
         }
@@ -43,7 +43,7 @@ Account* SearchAccId(int id, Account * acc)
     strcpy(acc->question, _row[3]);
     strcpy(acc->answer, _row[4]);
 
-    mysql_free_result(_res);                   
+    mysql_free_result(_res);
     mysql_close(_mysql);
     return acc;
 }
@@ -74,7 +74,7 @@ void SearchAccNm(char * name, char * res_str)
         else                                    // 如果出错
         {
             fprintf(stderr, "%d: Error: %s\n", __LINE__, mysql_error(_mysql));
-            strcpy(res_str, "\r\t\n"); 
+            strcpy(res_str, "\r\t\n");
         }
         mysql_close(_mysql);
         return;
@@ -99,19 +99,19 @@ int LoginAcc(int id, char * pass)
         return 0;
     }
     sprintf(sql, "select id, passmd5 from user_list where id = %d AND passmd5 = md5('%s')", id, pass);
-    ret = mysql_real_query(_mysql, sql, strlen(sql)); 
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
     {
         fprintf(stderr, "%d: %s\n", __LINE__, mysql_error(_mysql));
         mysql_close(_mysql);
-        return 0;        
+        return 0;
     }
     _res = mysql_store_result(_mysql);
     if (_res == NULL)                           // 出错或者无数据
     {
         if (mysql_field_count(_mysql) != 0)     // 如果出错
             fprintf(stderr, "%d: Error: %s\n", __LINE__, mysql_error(_mysql));
-        mysql_close(_mysql);    
+        mysql_close(_mysql);
         return 0;
     }
     mysql_free_result(_res);
@@ -119,11 +119,11 @@ int LoginAcc(int id, char * pass)
     return 1;                                   // 结果匹配
 }
 
-int RegACC(char * name, char * pass, char * problem , char * answer)
+int RegACC(char * name, char * pass, char * problem, char * answer)
 {
     int ret, flag = 0, getid;
     char sql[128];
-    if (problem == NULL)    
+    if (problem == NULL)
         flag = 1;
     if ((mysql_real_connect(_mysql, NULL, MS_USER, MS_PASS, Data_ChatBase, 0, NULL, 0)) == NULL)
     {
@@ -132,7 +132,7 @@ int RegACC(char * name, char * pass, char * problem , char * answer)
     }
     if (flag)
         sprintf(sql, "insert into user_list(username, passmd5) values('%s', md5('%s'));", name, pass);
-    else   
+    else
         sprintf(sql, "insert into user_list(username, passmd5, question, answer) values('%s', md5('%s'), '%s', '%s');", name, pass, problem, answer);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
@@ -141,7 +141,7 @@ int RegACC(char * name, char * pass, char * problem , char * answer)
         mysql_close(_mysql);
         return 0;
     }
-    else 
+    else
     {
         // 释放结果集，以便执行下一条sql语句
         _res = mysql_store_result(_mysql);
@@ -241,7 +241,7 @@ int DelFriend(int user_id, int friend_id)
 {
     int ret0 = _DelFriend(user_id, friend_id);
     int ret1 = _DelFriend(friend_id, user_id);
-    return ret0 | ret1;         
+    return ret0 | ret1;
 }
 
 char* FriendList(int user_id, char * reststr)
@@ -259,7 +259,7 @@ char* FriendList(int user_id, char * reststr)
     {
         fprintf(stderr, "%d: %s\n", __LINE__, mysql_error(_mysql));
         mysql_close(_mysql);
-        return NULL;        
+        return NULL;
     }
     _res = mysql_store_result(_mysql);
     if (_res == NULL)
@@ -291,7 +291,7 @@ char* FriendList(int user_id, char * reststr)
 
 // 群主id, 群名， 群介绍， 群成员人数， 群mysql_insert_id
 // 返回群id
-int AddGroup(int owner_id, char * name, char * createtime, char * something)
+int CreateGroup(int owner_id, char * name, char * createtime, char * something)
 {
     int ret, groupid;
     char sql[128];
@@ -356,5 +356,14 @@ int AddGroup(int owner_id, char * name, char * createtime, char * something)
     _res = mysql_store_result(_mysql);
     mysql_free_result(_res);
     // 更新own_id的关系
-    sprintf(sql, "insert into `%s`.`%d`")   
+    sprintf(sql, "insert into `%s`.`%d` values(%d, '%s', %d, %d);",  Data_UserInfo, owner_id, groupid, STA_GRP_NOR, STA_BE_NORM);
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
+    if (ret)
+    {
+        fprintf(stderr, "%d: %s\n", __LINE__, mysql_error(_mysql));
+        mysql_close(_mysql);
+        return 0;
+    }
+    mysql_close(_mysql);
+    return 1;
 }

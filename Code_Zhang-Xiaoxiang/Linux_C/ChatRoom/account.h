@@ -9,8 +9,10 @@
     > ------------ 添加好友 ------------
     > ------------ 屏蔽好友 ------------
     > ------------ 好友列表 ------------
+    // 单条发送，以NULL结尾
     > ------------ 删除好友 ------------
-    ------------ 新建群组 ------------
+    > ------------ 新建群组 ------------
+    ------------ 查找群组 ------------
     ------------ 加入群组 ------------
     ------------ 移出群组 ------------
     ------------ 解散群组 ------------
@@ -45,9 +47,9 @@
 #define GRP_STA_NOR         0       // 普通群员
 
 // 数据库操作句柄等全局变量
-MYSQL * _mysql = NULL;
-MYSQL_ROW _row;
-MYSQL_RES * _res;
+static MYSQL * _mysql = NULL;
+static MYSQL_ROW _row;
+static MYSQL_RES * _res;
 
 // 相关结构体定义
 typedef struct account      // the struct for user
@@ -131,6 +133,6 @@ char* FriendList(int user_id, char * reststr);
 
 // fun: 创建群
 // note: 更新ChatR_Base.group_list, 为群组新建一个表， 为新建的表添加数据，更新群主(用户)的关系列表
-int AddGroup(int owner_id, char * name, char * createtime, char * something);
+int CreateGroup(int owner_id, char * name, char * createtime, char * something);
 
 #endif
