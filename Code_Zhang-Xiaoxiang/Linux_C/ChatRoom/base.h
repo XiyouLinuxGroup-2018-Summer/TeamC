@@ -62,7 +62,7 @@
 #define bWHITE              47
 
 // 错误处理 ---------------------------------------------------------------
-void my_err(const char * err_string, int line);
+void my_err(const char * file, const char * err_string, int line);
 
 // input -----------------------------------------------------------------
 int getch(void);
@@ -75,7 +75,11 @@ char* s_getchs(char * st, int n);
 #define USER_PASS_MIN       6
 #define USER_PASS_MAX       10
 #define MSG_SIZE            1024        // 信息长度
+#define BUF_SIZE            2048        // 缓冲区大小
 #define OTHER_SIZE          256         // 杂项
+#define MEM_NUM             256         // 群成员限制
+#define FRI_NUM             256         // 好友上限
+#define GRP_NUM             100         // 加群上限
 
 // some ------------------------------------------------------------------
 #define _END_               "\r\t\n"    // empty msg or failed

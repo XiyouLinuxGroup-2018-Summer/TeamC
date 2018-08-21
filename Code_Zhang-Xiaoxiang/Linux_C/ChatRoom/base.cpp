@@ -23,12 +23,12 @@ void get_time(char * string)
 {
     time_t now;                 //实例化time_t结构
     struct tm * timenow;        //实例化tm结构指针
-    time(&now);
-    //time函数读取现在的时间(国际标准时间非北京时间)，然后传值给now
-    timenow = localtime(&now);
-    //localtime函数把从time取得的时间now换算成你电脑中的时间(就是你设置的地区)
-    // printf("Local time is %s\n",asctime(timenow));
-    strcpy(string, asctime(timenow));
+    time(&now);                 //time函数读取现在的时间(国际标准时间非北京时间)，然后传值给now
+    timenow = localtime(&now);  //localtime函数把从time取得的时间now换算成你电脑中的时间(就是你设置的地区)
+    if (string == NULL)
+        printf("[time] %s\n",asctime(timenow));
+    else
+        strcpy(string, asctime(timenow));
 }
 
 // fun: 行输入
@@ -67,8 +67,9 @@ char* s_getchs(char * st, int n)
     return st;
 }
 
-void my_err(const char * err_string, int line)
+void my_err(const char * file, const char * err_string, int line)
 {
+    fprintf(stderr, "File: %s\n", file);
     fprintf(stderr, "line: %d ", line);
     perror(err_string);
     exit(1);

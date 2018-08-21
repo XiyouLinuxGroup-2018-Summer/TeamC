@@ -2,15 +2,17 @@
 #define _VIEW_H_
 
 #include "base.h"
+#include "internet.h"
 
 // fun: 注册登录退出关于界面
 // 成功返回对应的选项
 int vBeginRLQ(void);
 
 // fun: 注册界面
-// note: 调用 mysql 来添加新用户
+// arg->data: 发送给服务器的数据包
+// arg->sockfd: 发送注册请求的套接字
 // return: 返回值同 exec_mysql_fun
-int vRegister(void);
+int vRegister(Package * data, int sockfd);
 
 // fun: 关于界面
 // note: 调用函数后，输入任意字符返回最开始界面(vBeginRLQ())
@@ -25,13 +27,16 @@ void vMessageTop(int num);
 int vFunMainMenu(void);
 
 // fun: 登录
-int vLogin(void);
+int vLogin(Package * data, int sockfd);
 
 // fun: 找回密码
-int vForgetPass(char * question, char * answer);
+// int vForgetPass(char * question, char * answer);
 
 // fun: 对好友操作
 int vFunFriendMenu(void);
+
+// fun: 对群成员的操作
+int vFunMemMenu(void);
 
 // fun: 对群组操作
 int vFunGroupMenu(void);
@@ -65,6 +70,6 @@ int vCreateGroup(void);
 //      5. [群主]/[管理员]是否同意加群请求
 //  - 普通群聊、私聊信息
 //      询问查看哪一条信息， 打开聊天界面
-void vLookOffMsg(void);
+void vLookMsg(void);
 
 #endif

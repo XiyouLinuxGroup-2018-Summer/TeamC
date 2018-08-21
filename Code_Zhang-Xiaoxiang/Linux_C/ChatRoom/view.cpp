@@ -1,6 +1,7 @@
 #include "base.h"
 #include "view.h"
-#include "account.h"
+// #include "account.h"
+#include "internet.h"
 
 int vBeginRLQ(void)
 {
@@ -27,9 +28,11 @@ int vBeginRLQ(void)
     }while(1);
 }
 
-int vRegister(void)
+int vRegister(Package * data, int sockfd)
 {
-    int count = 0, ch, flag = 0;
+    int ret;
+    Package recvpack;
+    memset(&recvpack, 0, sizeof(recvpack));
     char username[USER_NAME_MAX + 1], pass[USER_PASS_MAX + 1], passagain[USER_PASS_MAX + 1];
     char question[OTHER_SIZE + 1], answer[OTHER_SIZE + 1];
     while(1)
@@ -75,7 +78,16 @@ int vRegister(void)
             break;
         }
     }
-    // 调用mysql添加新用户
+    // 封装pack
+    memset(data, 0, PACK_SIZE);
+    sprintf(data->strmsg, "%s%s%s%s%s%s%s%s", username, _END_, pass, _END_, question, _END_, answer, _END_);
+    ret = SendMSG(sockfd, data, PACK_SIZE, 0);
+    if (ret < 0)
+        my_err(__FILE__, "SendMSG", __LINE__);
+    ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
+    if (ret < 0)
+        my_err(__FILE__, "RecvMSG", __LINE__);
+    return recvpack.cmdflag;
 }
 
 void vAbout(void)
@@ -89,6 +101,8 @@ void vAbout(void)
     printf("*                                                 *\n");    
     printf("*-------------------------------------------------*\n");
     S_CLOSE();
+    printf("\n按任意键返回...\n");
+    getchar();
 }
 
 void vMessageTop(int num)
@@ -139,10 +153,11 @@ int vFunMainMenu(void)
     }while(1);
 }
 
-int vLogin(void)
+int vLogin(Package * data, int sockfd)
 {
-    int userid;
+    int userid, ret;
     char pass[USER_PASS_MAX + 1];
+    Package recvpack;
     while(1)
     {
         S_CLEAR(); S_BLOD(); S_COLOR(40, 33);
@@ -164,34 +179,43 @@ int vLogin(void)
     while (!s_getchs(pass, USER_PASS_MAX) || strlen(pass) < USER_PASS_MIN)
         S_RESTPOS();
     printf("\n");  
-
-    // 调用Mysql语句
-    // send 给服务器，服务器解析之后调用 loginACC
+    
+    memset(data, 0, PACK_SIZE);
+    data->cmdflag = Flag_Cmd_Login;
+    sprintf(data->strmsg, "%s%s%s%s", userid, _END_, pass, _END_);
+    
+    ret = SendMSG(sockfd, data, PACK_SIZE, 0);
+    if (ret < 0)
+        my_err(__FILE__, "SendMSG", __LINE__);
+    ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
+    if (ret < 0)
+        my_err(__FILE__, "RecvMSG", __LINE__);
+    return recvpack.cmdflag;
 }
 
-int vForgetPass(char * question, char * answer)
-{
-    for (int i = 0; i < 3; i++)
-    {
-        S_CLEAR(); S_BLOD(); S_COLOR(40, 33);
-        printf("*------------------- Chat Room -------------------*\n");
-        printf("*              - Retrieve password -              *\n\n");
-        S_CLOSE();
-        printf("          [%16s]\n", question);
-        printf("ANSWER: ");
-        memset(answer, 0, sizeof(answer));
-        s_gets(answer, OTHER_SIZE + 1, stdin);
-        // send to server 
-        // if (/* ... */)
-        // {
-        //     /* ... */
-        // }
-        // else
-        // {
-        //     /* ... */
-        // }
-    }
-}
+// int vForgetPass(char * question, char * answer)
+// {
+//     for (int i = 0; i < 3; i++)
+//     {
+//         S_CLEAR(); S_BLOD(); S_COLOR(40, 33);
+//         printf("*------------------- Chat Room -------------------*\n");
+//         printf("*              - Retrieve password -              *\n\n");
+//         S_CLOSE();
+//         printf("          [%16s]\n", question);
+//         printf("ANSWER: ");
+//         memset(answer, 0, sizeof(answer));
+//         s_gets(answer, OTHER_SIZE + 1, stdin);
+//         // send to server 
+//         // if (/* ... */)
+//         // {
+//         //     /* ... */
+//         // }
+//         // else
+//         // {
+//         //     /* ... */
+//         // }
+//     }
+// }
 
 int vFunFriendMenu(void)
 {
@@ -218,9 +242,4 @@ int vFunFriendMenu(void)
         if (cmd > 0 && cmd <= 8)
             return cmd;
     }while(1); 
-}
-
-int vFunGroupMenu(void)
-{
-    
 }
