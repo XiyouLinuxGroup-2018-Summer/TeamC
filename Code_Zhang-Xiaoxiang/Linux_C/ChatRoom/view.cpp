@@ -1,5 +1,6 @@
 #include "base.h"
 #include "view.h"
+#include "account.h"
 
 int vBeginRLQ(void)
 {
@@ -125,9 +126,8 @@ int vFunMainMenu(void)
         printf("\t\t[4] 添加好友\t\t\t\n");
         printf("\t\t[5] 添加群聊\t\t\t\n");
         printf("\t\t[6] 创建群聊\t\t\t\n");
-        printf("\t\t[7] 发送文件\t\t\t\n");
-        printf("\t\t[8] 退出登录\t\t\t\n");
-        printf("\t\t[9] 退出软件\t\t\t\n");
+        printf("\t\t[7] 退出登录\t\t\t\n");
+        printf("\t\t[8] 退出软件\t\t\t\n");
         S_BLOD(); S_COLOR(40, 33);
         printf("\n-------------------------------------------------\n");
         S_CLOSE();
@@ -137,4 +137,90 @@ int vFunMainMenu(void)
         if (cmd > 0 && cmd <= 8)
             return cmd;
     }while(1);
+}
+
+int vLogin(void)
+{
+    int userid;
+    char pass[USER_PASS_MAX + 1];
+    while(1)
+    {
+        S_CLEAR(); S_BLOD(); S_COLOR(40, 33);
+        printf("*------------------- Chat Room -------------------*\n");
+        printf("*                    - login -                    *\n\n");
+        S_CLOSE();
+        printf("                please input userid:         \n");
+        printf("\t\tusername: ");
+        if (scanf("%d", &userid) != 1)
+            while(getchar() != '\n');
+        else
+            break;
+    }
+
+    printf("           please input password[%d ~ %d]:        \n", USER_PASS_MIN, USER_PASS_MAX);
+    printf("\t\tpassword: ");
+    S_SAVEPOS();
+
+    while (!s_getchs(pass, USER_PASS_MAX) || strlen(pass) < USER_PASS_MIN)
+        S_RESTPOS();
+    printf("\n");  
+
+    // 调用Mysql语句
+    // send 给服务器，服务器解析之后调用 loginACC
+}
+
+int vForgetPass(char * question, char * answer)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        S_CLEAR(); S_BLOD(); S_COLOR(40, 33);
+        printf("*------------------- Chat Room -------------------*\n");
+        printf("*              - Retrieve password -              *\n\n");
+        S_CLOSE();
+        printf("          [%16s]\n", question);
+        printf("ANSWER: ");
+        memset(answer, 0, sizeof(answer));
+        s_gets(answer, OTHER_SIZE + 1, stdin);
+        // send to server 
+        // if (/* ... */)
+        // {
+        //     /* ... */
+        // }
+        // else
+        // {
+        //     /* ... */
+        // }
+    }
+}
+
+int vFunFriendMenu(void)
+{
+    int cmd;
+    do
+    {
+        S_CLEAR(); S_BLOD(); S_COLOR(40, 33);
+        printf("                  - Function -                   \n\n");    
+        S_CLOSE();
+        printf("\t\t[1] 和ta聊天\t\t\t\n");
+        printf("\t\t[2] 查看聊天记录\t\t\t\n");
+        printf("\t\t[3] 加入黑名单\t\t\t\n");
+        printf("\t\t[4] 移出黑名单\t\t\t\n");
+        printf("\t\t[5] 删除联系人\t\t\t\n");
+        printf("\t\t[6] 邀请好友加群\t\t\t\n");
+        printf("\t\t[7] 发送文件\t\t\t\n");
+        printf("\t\t[8] 返回\t\t\t\n");
+        S_BLOD(); S_COLOR(40, 33);
+        printf("\n-------------------------------------------------\n");
+        S_CLOSE();
+        printf("\nYour Choice is :\t");
+        scanf("%d", &cmd);
+        while (getchar() != '\n');
+        if (cmd > 0 && cmd <= 8)
+            return cmd;
+    }while(1); 
+}
+
+int vFunGroupMenu(void)
+{
+    
 }

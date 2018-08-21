@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <termio.h>
 #include <mysql/mysql.h>
+#include <pthread.h>
 
 // 与屏幕光标有关的宏定义 ----------------------------------------------------
 #define S_CLEAR()           printf("\ec")              // 清屏
@@ -60,7 +61,10 @@
 #define bDGREEN             46
 #define bWHITE              47
 
-// getch -----------------------------------------------------------------
+// 错误处理 ---------------------------------------------------------------
+void my_err(const char * err_string, int line);
+
+// input -----------------------------------------------------------------
 int getch(void);
 void get_time(char * string);
 char * s_gets(char * st, int n, FILE *fp);
@@ -72,5 +76,8 @@ char* s_getchs(char * st, int n);
 #define USER_PASS_MAX       10
 #define MSG_SIZE            1024        // 信息长度
 #define OTHER_SIZE          256         // 杂项
+
+// some ------------------------------------------------------------------
+#define _END_               "\r\t\n"    // empty msg or failed
 
 #endif

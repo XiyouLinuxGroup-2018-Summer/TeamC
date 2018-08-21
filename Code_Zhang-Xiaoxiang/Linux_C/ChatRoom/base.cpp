@@ -66,3 +66,10 @@ char* s_getchs(char * st, int n)
     st[count] = '\0';
     return st;
 }
+
+void my_err(const char * err_string, int line)
+{
+    fprintf(stderr, "line: %d ", line);
+    perror(err_string);
+    exit(1);
+}

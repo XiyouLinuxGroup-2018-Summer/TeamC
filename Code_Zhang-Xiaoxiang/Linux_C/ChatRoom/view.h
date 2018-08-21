@@ -28,7 +28,7 @@ int vFunMainMenu(void);
 int vLogin(void);
 
 // fun: 找回密码
-int ForgetPass(void);
+int vForgetPass(char * question, char * answer);
 
 // fun: 对好友操作
 int vFunFriendMenu(void);
@@ -62,7 +62,9 @@ int vCreateGroup(void);
 //      3. 是否同意加好友的请求
 //      4. if 群主 or 管理员
 //              是否接受有人的加群请求
-//      5. 
+//      5. [群主]/[管理员]是否同意加群请求
+//  - 普通群聊、私聊信息
+//      询问查看哪一条信息， 打开聊天界面
 void vLookOffMsg(void);
 
 #endif

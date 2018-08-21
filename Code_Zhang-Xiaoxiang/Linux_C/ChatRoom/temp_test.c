@@ -1,4 +1,4 @@
-// ChatRoom_client
+// file: test ChatRoom
 #include "base.h"
 #include "view.h"
 #include "account.h"
@@ -6,6 +6,6 @@
 
 int main(void)
 {
-
+    
     return 0;
 }
