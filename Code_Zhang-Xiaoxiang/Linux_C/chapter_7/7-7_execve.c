@@ -41,6 +41,6 @@ int main(int argc, char * argv[], char ** environ)
 
     int exitpid = wait(&stat_val);
     printf("child process id %d\n", exitpid);
-    防止子进程成为僵死进程
+    // 防止子进程成为僵死进程
     exit(0);
 }

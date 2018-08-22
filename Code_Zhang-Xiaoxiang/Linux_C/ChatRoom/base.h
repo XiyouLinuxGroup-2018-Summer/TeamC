@@ -1,6 +1,3 @@
-/* 
-    基础函数即宏定义
-*/
 #ifndef _BASE_H_
 #define _BASE_H_
 
@@ -62,7 +59,7 @@
 #define bWHITE              47
 
 // 错误处理 ---------------------------------------------------------------
-void my_err(const char * file, const char * err_string, int line);
+void my_err(const char * file, const char * err_string, int line, int flag);
 
 // input -----------------------------------------------------------------
 int getch(void);
@@ -74,7 +71,7 @@ char* s_getchs(char * st, int n);
 #define USER_NAME_MAX       12
 #define USER_PASS_MIN       6
 #define USER_PASS_MAX       10
-#define MSG_SIZE            1024        // 信息长度
+#define MSG_SIZE            512         // 信息长度
 #define BUF_SIZE            2048        // 缓冲区大小
 #define OTHER_SIZE          256         // 杂项
 #define MEM_NUM             256         // 群成员限制

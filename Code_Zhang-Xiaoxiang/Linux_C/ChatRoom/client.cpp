@@ -5,9 +5,11 @@
 
 using namespace std;
 
-#define PATH "./.MSG"                   
+#define PATH "./.MSG"    
+
 // Directory: 存放聊天记录
 // 目录下文件命名格式： PATH/[f/g]+[userid/groupid].txt
+
 typedef struct fri
 {
     int id;
@@ -51,12 +53,12 @@ int main(void)
 
     sock_fd = socket(AF_INET, SOCK_STREAM, 0);          // 创建套接字
     if (sock_fd < 0)
-        my_err(__FILE__, "sock", __LINE__);
+        my_err(__FILE__, "sock", __LINE__, 0);
 
     // 连接服务器
     ret = connect(sock_fd, (struct sockaddr*)&cli_addr, sizeof(struct sockaddr_in));
     if (ret < 0)
-        my_err(__FILE__, "connect", __LINE__);
+        my_err(__FILE__, "connect", __LINE__, 0);
 
     // 开始界面
     while (loopflag)
@@ -125,7 +127,7 @@ int main(void)
     loopflag = 1;
     ret = pthread_create(&Trecv, NULL, Precv, NULL);    // 创建线程接受服务器传来的消息
     if (ret < 0)
-        my_err(__FILE__, "pthread_create", __LINE__);
+        my_err(__FILE__, "pthread_create", __LINE__, 0);
     
     while (1)
     {
@@ -134,7 +136,7 @@ int main(void)
         ret = vFunMainMenu();
         switch(ret)
         {
-            case 1: // 查看离线消息
+            case 1: // 查看消息
 
                 pthread_mutex_lock(&mutex);
                 MsgNum = 0;       

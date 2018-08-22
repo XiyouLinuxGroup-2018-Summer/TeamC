@@ -28,3 +28,6 @@ CREATE DATABASE IF NOT EXISTS user_info;
 
 /* 创建group_info数据库 */
 CREATE DATABASE IF NOT EXISTS group_info;
+
+/* 创建离线消息记录数据库 */
+CREATE DATABASE IF NOT EXISTS offlineMSG;

@@ -26,7 +26,7 @@ void get_time(char * string)
     time(&now);                 //time函数读取现在的时间(国际标准时间非北京时间)，然后传值给now
     timenow = localtime(&now);  //localtime函数把从time取得的时间now换算成你电脑中的时间(就是你设置的地区)
     if (string == NULL)
-        printf("[time] %s\n",asctime(timenow));
+        printf("\n[time] %s\n",asctime(timenow));
     else
         strcpy(string, asctime(timenow));
 }
@@ -67,10 +67,13 @@ char* s_getchs(char * st, int n)
     return st;
 }
 
-void my_err(const char * file, const char * err_string, int line)
+void my_err(const char * file, const char * err_string, int line, int flag)
 {
     fprintf(stderr, "File: %s\n", file);
     fprintf(stderr, "line: %d ", line);
     perror(err_string);
-    exit(1);
+    if (!flag)
+        exit(1);
+    else
+        pthread_exit(0);
 }

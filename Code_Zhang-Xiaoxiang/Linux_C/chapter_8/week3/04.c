@@ -68,7 +68,7 @@ void ThreadWrite(void * arg)
             pthread_cond_signal(&cond);
         if (!flag)
             pthread_exit(0);
-        sleep(rand() % 2);
+        // sleep(rand() % 2);
     }
     pthread_exit(0);
 }
@@ -112,7 +112,7 @@ void ThreadRead(void * arg)
         else
             pthread_mutex_unlock(&mutex);
         memset(rBuf, '\0', sizeof(rBuf));
-        sleep(rand() % 3);
+        // sleep(rand() % 3);
         if (!flag)
             pthread_exit(0);
     }
@@ -128,7 +128,7 @@ int main(void)
     pthread_create(&thdB, NULL, (void*)ThreadRead, NULL);
     pthread_create(&thdA, NULL, (void*)ThreadWrite, NULL);
 
-    sleep(10);               // 主线程沉睡
+    sleep(1);               // 主线程沉睡
     flag = 0;               // 设置条件使线程结束
 
     // 善后

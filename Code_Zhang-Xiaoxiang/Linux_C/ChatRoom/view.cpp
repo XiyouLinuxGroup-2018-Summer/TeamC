@@ -1,6 +1,5 @@
 #include "base.h"
 #include "view.h"
-// #include "account.h"
 #include "internet.h"
 
 int vBeginRLQ(void)
@@ -83,10 +82,10 @@ int vRegister(Package * data, int sockfd)
     sprintf(data->strmsg, "%s%s%s%s%s%s%s%s", username, _END_, pass, _END_, question, _END_, answer, _END_);
     ret = SendMSG(sockfd, data, PACK_SIZE, 0);
     if (ret < 0)
-        my_err(__FILE__, "SendMSG", __LINE__);
+        my_err(__FILE__, "SendMSG", __LINE__, 0);
     ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
     if (ret < 0)
-        my_err(__FILE__, "RecvMSG", __LINE__);
+        my_err(__FILE__, "RecvMSG", __LINE__, 0);
     return recvpack.cmdflag;
 }
 
@@ -186,10 +185,10 @@ int vLogin(Package * data, int sockfd)
     
     ret = SendMSG(sockfd, data, PACK_SIZE, 0);
     if (ret < 0)
-        my_err(__FILE__, "SendMSG", __LINE__);
+        my_err(__FILE__, "SendMSG", __LINE__, 0);
     ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
     if (ret < 0)
-        my_err(__FILE__, "RecvMSG", __LINE__);
+        my_err(__FILE__, "RecvMSG", __LINE__, 0);
     return recvpack.cmdflag;
 }
 

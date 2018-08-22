@@ -102,6 +102,7 @@ int main()
         my_err("listen", __LINE__);
 
     cli_len = sizeof(struct sockaddr_in);
+
     while (1)
     {
         // 通过accept接受客户端的连接请求，并返回连接套接字用于收发数据
@@ -121,7 +122,7 @@ int main()
                     perror("recv");
                     exit(1);
                 }
-                recv_buf[ret-1] = '\0';         // 将数据结束标志'\n'替换成字符串结束标志
+                recv_buf[ret - 1] = '\0';         // 将数据结束标志'\n'替换成字符串结束标志
 
                 if (flag_recv == USERNAME)
                 {

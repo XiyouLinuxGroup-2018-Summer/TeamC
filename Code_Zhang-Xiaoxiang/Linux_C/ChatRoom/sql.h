@@ -1,5 +1,5 @@
 /* 
-    -------- 与账号有关的操作 --------
+    -------- 与mysql有关的操作 --------
     [--- 对账号的操作都要基于用户id ---]
     > ------------ 查询账号 ------------
         |------ id/用户名 -------|
@@ -8,25 +8,28 @@
         -------------修改账号 ------------
     > ------------ 添加好友 ------------
     > ------------ 屏蔽好友 ------------
-    > ------------ 好友列表 ------------
+    > ------------ 用户关系列表 ------------
     // 单条发送，以NULL结尾
     > ------------ 删除好友 ------------
     > ------------ 新建群组 ------------
-    ------------ 查找群组 ------------
-    ------------ 加入群组 ------------
+    > ------------ 查找群组 ------------
+    > ------------ 加入群组 ------------
     ------------ 移出群组 ------------
     ------------ 解散群组 ------------
-    ------------ 群组列表 ------------
+    > ------------ 离线消息 ------------
+    > ------------ 群成员列表 -----------
     [================================]
  */
 #ifndef __ACCOUNT_H_
 #define __ACCOUNT_H_
 #include "base.h"
+#include "internet.h"
 
 // 用到的数据库信息
 #define MS_USER             "root"
 #define MS_PASS             "mysqlpass"
 #define Data_ChatBase       "ChatR_Base"
+#define Data_OfflineMsg     "offlineMSG"         
 #define Table_Userlist      "user_list"
 #define Table_Grouplist     "group_list"      
 #define Data_UserInfo       "user_info"
@@ -51,38 +54,16 @@ static MYSQL * _mysql = NULL;
 static MYSQL_ROW _row;
 static MYSQL_RES * _res;
 
-// 相关结构体定义
-typedef struct account      // the struct for user
-{
-    int id;                 // user id
-    char name[32];          // user name
-    char passmd5[35];       // user passmd5
-    char question[100];     // question for retrieve password
-    char answer[100];       // answer
-}Account;
-
-typedef struct group                // the struct for group
-{
-    int id;                         // group id
-    int num_of_member;              // members number 
-    char name[32];                  // group name
-    char create_time[40];           // the group create time
-    char introduction[1024];        // the introduction from introduction
-}Group;
-
 /* ----------------------------------- function ----------------------------------- */
 
+// fun: mysql错误处理
+void* sql_err(int line, MYSQL * _mysql);
 // fun: 根据用户id查询用户
 // arg->id: 用户id
 // arg->acc: 存储查找后用户的信息
 // return : 查找成功返回acc, 失败返回NULL
 // note: 如果成功需要free(acc)
-Account* SearchAccId(int id, Account * acc);
-
-// fun: 根据用户名查找服务器上的用户信息
-// arg->name: 用户名
-// arg->res_str: 存储查找结果的字符串，查找成功存入查找的信息，失败或无数据则标示为 \r\t\n
-void SearchAccNm(char * name, char * res_str);
+char* SearchAccId(int id, char * acc);
 
 // fun: 登录账号
 // arg->name: 用户id
@@ -124,15 +105,32 @@ int _DelFriend(int user_id, int friend_id);
 // return: 成功返回1，失败返回0
 int DelFriend(int user_id, int friend_id);
 
-// fun: 好友列表
+// fun: 用户关系列表 
 // arg->user_id: 用户id
-// arg->reststr: 用于存储查询到的用户的好友列表
-// return: 成功返回指向 reststr 的指针，发生错误返回0
-// note: 当用户登录时候给用户传输此信息，之后的变化由客户端申请用户关系变化，申请成功后服务器处理相关信息，然后在本地修改用户关系表
-char* FriendList(int user_id, char * reststr);
+// arg->reststr: 用于存储查询到的用户的好友列表, 二维数组, 用 calloc 分配，
+//               _END_ 分割参数，以NULL结尾
+// arg->flag: flag = 0, 好友列表，flag = 1, 群组列表
+// return: 成功返回指向 reststr 的指针，发生错误返回NUll
+char** UserRelaList(int user_id, char * reststr[], int flag);
 
 // fun: 创建群
 // note: 更新ChatR_Base.group_list, 为群组新建一个表， 为新建的表添加数据，更新群主(用户)的关系列表
-int CreateGroup(int owner_id, char * name, char * createtime, char * something);
+// 群主id, 群名， 群介绍， 群成员人数， 群mysql_insert_id
+// 返回群id
+// something 为 NULL, 使用默认介绍
+int CreateGroup(int owner_id, char * name, char * something);
+
+// fun: 大体同SearchAccId
+char* SearchGrpId(int id, char * grp);
+
+// fun: 加入群组
+// note: 修改群组成员信息，修改个人关系列表
+int AddOneToGrp(int user_id, int grp_id);
+
+// fun: 群成员列表
+int GrpMemberList(int grp_id, int mem_id[MEM_NUM], char mem_name[MEM_NUM][USER_NAME_MAX + 1], int mem_sta[MEM_NUM]);
+
+// fun: 离线消息
+int OfflineMSG(Package * msg, int tar_id, int flag);
 
 #endif
