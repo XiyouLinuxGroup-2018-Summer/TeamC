@@ -26,8 +26,9 @@ int RecvMSG(int socket, Package* msg, int pSize, int flags)
         len = recv(socket, (void *)ptr, pSize - count, flags);
         if (len < 0)
             return -1;
-        if (len == 0){
-            printf("666666666666666666666666666666666666666\n");           // 软件中断
+        if (len == 0)
+        {
+            printf("666666666666666666666666666666666666666\n");           
             return 0;
         }
         count += len;

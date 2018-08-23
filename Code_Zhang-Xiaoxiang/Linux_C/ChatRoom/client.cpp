@@ -587,7 +587,7 @@ int vGroupList()
     num = myGroup.size();
     if (num == 0)
     {
-        printf("好友列表为空\n");
+        printf("群组列表为空\n");
         return -1;
     }
 
