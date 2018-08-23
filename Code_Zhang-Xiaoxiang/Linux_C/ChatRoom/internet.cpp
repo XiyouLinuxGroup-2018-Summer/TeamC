@@ -4,29 +4,35 @@
 int SendMSG(int socket, const Package* msg, int pSize, int flags)
 {
     int count = 0, len;
+    const char *ptr  = (const char *)msg ;
     do
     {
-        len = send(socket, msg, pSize - count, flags);
+        len = send(socket, (void *)ptr, pSize - count, flags);
         if (len < 0)
             return -1;
         count += len;
-    }while(count < pSize);
+        ptr += count;
+    } while(count < pSize);
 
     return count;
 }
 
 int RecvMSG(int socket, Package* msg, int pSize, int flags)
 {
-    int count = 0, len;
+    int count = 0, len = 0 ;
+    char *ptr = (char *)msg ;
     do
     {
-        len = recv(socket, msg, pSize - count, flags);
+        len = recv(socket, (void *)ptr, pSize - count, flags);
         if (len < 0)
             return -1;
-        if (len == 0)           // 软件中断
+        if (len == 0){
+            printf("666666666666666666666666666666666666666\n");           // 软件中断
             return 0;
+        }
         count += len;
-    }while(count < pSize);
+        ptr += count;
+    } while(count < pSize);
 
     return count;
 }

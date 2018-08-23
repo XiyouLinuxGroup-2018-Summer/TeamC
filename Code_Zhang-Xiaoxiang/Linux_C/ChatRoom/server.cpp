@@ -9,18 +9,15 @@ using namespace std;
 #define LISTENUM            999     // 请求连接队列长度
 #define EVENTS_MAX          1000    // epoll 监测的最多事件
 
-#define MSG_FriNOR          0       // 私聊信息
-#define MSG_GRPNOR          1       // 群聊信息
-#define MSG_SYS_RECVFILE    2       // 系统信息: 接受文件
-#define MSG_SYS_INVIGRP     3       // 系统信息: 好友邀群
-#define MSG_SYS_INVIFri     4       // 系统信息: 加好友请求
-#define MSG_SYS_AGRAGRP     5       // 系统信息: 同意加好友请求
-
 static int sock_fd;
-map<int, in_addr>SockWithIp;        // socket --> IP
 map<int, int>IdWithSock;            // user_id --> socket
 map<int, int>SockWithId;            // socket  --> user_id
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;  // 初始化锁
+
+MYSQL * _mysql = NULL;
+MYSQL_ROW _row;
+MYSQL_RES * _res;
+
 
 void Initia(void);                  // 初始化
 void EndEvents(void);               // 关闭连接，套接字等等
@@ -29,8 +26,9 @@ void* pthreadFun(void * arg);       // 线程，处理请求
 int main(void)
 {
     signal(SIGPIPE, SIG_IGN);       // 屏蔽pipe信号, 防止客户端异常退出后服务端挂掉
+    Initia();  
     int ret, op;
-    int conn_fd;           // 套接字
+    int conn_fd;                    // 套接字
     int epfd, nfds;
     struct epoll_event ev, events[EVENTS_MAX];
     struct sockaddr_in ser_addr, cli_addr;
@@ -59,8 +57,7 @@ int main(void)
     ret = listen(sock_fd, LISTENUM);
     if (ret < 0)
         my_err(__FILE__, "listen", __LINE__, 0);
-
-    Initia();                       
+                     
     // mysql 初始化，用户、群列表，群成员信息, 用户状态 几个stl初始化, 清空
 
     epfd = epoll_create(EVENTS_MAX - 5);           
@@ -79,12 +76,9 @@ int main(void)
                 conn_fd = accept(sock_fd, (struct sockaddr*)&cli_addr, &cli_len);
                 if (conn_fd < 0)
                     my_err(__FILE__, "accept", __LINE__, 0);
-                
-                // 数组方式可以覆盖之前的值
-                SockWithIp[conn_fd] = cli_addr.sin_addr;
 
                 get_time(NULL);
-                fprintf(stdout, "[CMD] accept [IP] %s [PORT] %s", inet_ntoa(cli_addr.sin_addr), cli_addr.sin_port);
+                fprintf(stdout, "[CMD] accept [IP] %s\n", inet_ntoa(cli_addr.sin_addr));
 
                 ev.data.fd = conn_fd;
                 ev.events = EPOLLIN;
@@ -118,7 +112,7 @@ void Initia(void)
         exit(1);
     }
     // 初始化 stl
-    SockWithIp.clear();
+    SockWithId.clear();
     IdWithSock.clear();
 }
 
@@ -127,7 +121,7 @@ void EndEvents(void)
     mysql_close(_mysql);
     close(sock_fd);
     pthread_mutex_destroy(&mutex);
-    SockWithIp.clear();
+    SockWithId.clear();
     IdWithSock.clear();
 }
 
@@ -137,14 +131,15 @@ void* pthreadFun(void * arg)
     int confd = *(int*)arg;
     map<int, int>::iterator it;     // 迭代器
     Package recvpack, sendpack;
-    memset(&sendpack, 0, sizeof(Package));
 
     // 接收包
     ret = RecvMSG(confd, &recvpack, PACK_SIZE, 0);
+    printf("ret == %d \n",ret);
     if (ret < 0)
         my_err(__FILE__, "RecvMSG", __LINE__, 1);
     else if (ret == 0)                          // 客户度异常退出　[软件中断]
     {
+        printf("=======================\n");
         int temp_userid;
         it = SockWithId.find(confd);
         get_time(NULL);
@@ -153,14 +148,16 @@ void* pthreadFun(void * arg)
             temp_userid = it->second;
             SockWithId.erase(it);               // 从记录登录的两个map中删除
             IdWithSock.erase(temp_userid);
-            printf("[user](id = %d) exit\n", temp_userid);
+            fprintf(stdout, "[%d] exit\n", temp_userid);
         }
-        fprintf(stdout, "[status] 客户端退出（软件中断）[IP] %s [socket] %s\n", inet_ntoa(SockWithIp[confd]), confd);
+        fprintf(stdout, "[status] 客户端退出（软件中断）[socket] %s\n", confd);
+        close(confd);
         pthread_exit(0);
     }
 
     kase = recvpack.cmdflag;
     sourceid = recvpack.source_id;
+    sendpack = recvpack;
 
     // 执行相关操作
     switch(kase)
@@ -177,7 +174,7 @@ void* pthreadFun(void * arg)
                 IdWithSock.erase(temp_userid);
                 printf("[user](id = %d) exit\n", temp_userid);
             }
-            fprintf(stdout, "[status] 客户端正常退出 [IP] %s [socket] %s\n\n", inet_ntoa(SockWithIp[confd]), confd);
+            fprintf(stdout, "[status] 客户端正常退出 [socket] %s\n\n", confd);
             pthread_exit(0);
             break;
         }
@@ -185,13 +182,12 @@ void* pthreadFun(void * arg)
         //     break;
         case Flag_Cmd_Msg:
         {
-            sendpack = recvpack;
             get_time(NULL);
             fprintf(stdout, "服务器接收到聊天请求:\n");
 
             switch (recvpack.statusflag)
             {
-                case Flag_Status_Group:
+                case MSG_GRPNOR:
                 {
                     int grp_id = recvpack.target_id, tar_socket;
                     fprintf(stdout, "[id] `%d` 在群　[id] `%d`　发送了一条群聊信息\n", sourceid, grp_id);
@@ -200,10 +196,10 @@ void* pthreadFun(void * arg)
                     GrpMemberList(grp_id, mem, NULL, NULL); // 获取群成员列表
                     for (int i = 0; mem[i] != 0; i++)
                     {
-                        if (mem[i] == sourceid)         // 跳过自己
+                        if (mem[i] == sourceid)             // 跳过自己
                             continue;
-                        it = SockWithId.find(mem[i]);
-                        if (it == SockWithId.end())                 // 目的用户处于离线状态
+                        it = IdWithSock.find(mem[i]);
+                        if (it == IdWithSock.end())                 // 目的用户处于离线状态
                         {
                             fprintf(stdout, "目标用户[%d]处于离线状态，私聊信息将存入数据库中\n", mem[i]);
                             ret = OfflineMSG(&recvpack, mem[i], MSG_GRPNOR);
@@ -214,21 +210,20 @@ void* pthreadFun(void * arg)
                         {
                             fprintf(stdout, "目标用户[%d]在线\n", mem[i]);
                             tar_socket = IdWithSock[mem[i]];        // 目标套接字
-                            ret = SendMSG(tar_socket, &sendpack, PACK_SIZE, 0);
+                            ret = SendMSG(tar_socket, &recvpack, PACK_SIZE, 0);
                             if (ret < 0)
                                 my_err(__FILE__, "SendMSG", __LINE__, 1);
                         }
-                        break;
                     }
 
                     break;
                 }
-                case Flag_Status_user:
+                case MSG_FriNOR:
                 {
                     int taruser_id = recvpack.target_id, tar_socket;
                     fprintf(stdout, "[id] `%d` 给 [id] `%d`　发送了一条私聊信息\n", sourceid, taruser_id);
-                    it = SockWithId.find(taruser_id);
-                    if (it == SockWithId.end())                 // 目的用户处于离线状态
+                    it = IdWithSock.find(taruser_id);
+                    if (it == IdWithSock.end())                 // 目的用户处于离线状态
                     {
                         fprintf(stdout, "目标用户处于离线状态，私聊信息将存入数据库中\n");
                         ret = OfflineMSG(&recvpack, taruser_id, MSG_FriNOR);
@@ -239,7 +234,7 @@ void* pthreadFun(void * arg)
                     {
                         fprintf(stdout, "目标用户在线\n");
                         tar_socket = IdWithSock[taruser_id];        // 目标套接字
-                        ret = SendMSG(tar_socket, &sendpack, PACK_SIZE, 0);
+                        ret = SendMSG(tar_socket, &recvpack, PACK_SIZE, 0);
                         if (ret < 0)
                             my_err(__FILE__, "SendMSG", __LINE__, 1);
                     }
@@ -252,6 +247,10 @@ void* pthreadFun(void * arg)
         {
             get_time(NULL);
             fprintf(stdout, "接收到登录请求\n");
+            char temp[128];
+            if (SearchAccId(sourceid, temp) == NULL)      // 如果目标对象不存在直接退出
+                break;
+
             int temp_id;
             char temp_strid[12], temp_pass[USER_PASS_MAX], * pstr = recvpack.strmsg, * pstr2;
             while (strncmp(pstr, _END_, 3) != 0)
@@ -263,10 +262,28 @@ void* pthreadFun(void * arg)
                 pstr2++;
             *pstr2 = '\0';
             strcpy(temp_pass, pstr + 3);
-            ret = LoginAcc(temp_id, temp_pass);
-            fprintf(stdout, "[%d] 尝试登录%s\n", temp_id, ret ? "成功" : "失败");
 
-            sendpack.cmdflag = ret;
+            it = IdWithSock.find(temp_id);
+            if (it == IdWithSock.end())                             // 如果用户未登录
+            {
+                ret = LoginAcc(temp_id, temp_pass);
+                fprintf(stdout, "[%d] 尝试登录%s\n", temp_id, ret ? "成功" : "失败");
+                if (ret == 0)
+                    strcpy(sendpack.strmsg, "账号不存在或密码错误!请重新再试.\n");
+            }   
+            else                                                    // 如果账号已被登录，拒绝请求
+            {
+                ret = 0;
+                strcpy(sendpack.strmsg, "该账号已登录，请勿重复登录\n");
+            }
+
+            if (ret)                                                // 如果登录成功记录id和socket的对应关系
+            {
+                IdWithSock[temp_id] = confd;
+                SockWithId[confd]   = temp_id;
+            }
+
+            sendpack.statusflag = ret;
             ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);          // 给客户端发送回执
             if (ret < 0)
                 my_err(__FILE__, "SendMSG", __LINE__, 1);
@@ -275,6 +292,8 @@ void* pthreadFun(void * arg)
         }
         case Flag_Cmd_Register:
         {
+            get_time(NULL);
+            fprintf(stdout, "接收到注册请求\n");
             char * str1, * str2, *str3, *str4;
             char username[USER_NAME_MAX + 1], pass[USER_PASS_MAX + 1], question[OTHER_SIZE + 1], answer[OTHER_SIZE + 1];
             str1 = strstr(recvpack.strmsg, _END_);
@@ -289,89 +308,279 @@ void* pthreadFun(void * arg)
             question[str3 - str2 - strlen(_END_)] = '\0';
             strncpy(answer, str3 + strlen(_END_), str4 - str3 - strlen(_END_));
             answer[str4-str3 - strlen(_END_)] = '\0';
+
+            ret = RegACC(username, pass, question, answer);
+            fprintf(stdout, "[%d] 注册%s\n", sourceid, ret ? "成功" : "失败");
+
+            if (ret)
+            {
+                IdWithSock[ret]   = confd;
+                SockWithId[confd] = ret; 
+            }
+
+            sendpack.statusflag = ret;
+            ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
+            if (ret < 0)
+                my_err(__FILE__, "SendMSG", __LINE__, 1);
+
+            break;
         }
         // case 4:
         //     break;
-        case 5:
+        case Flag_Cmd_AddFri:                   // 添加好友请求
+        {
+            int tar_id = recvpack.target_id;            // 要加的对象
+            sendpack.cmdflag = Flag_Cmd_Msg;
+            sendpack.statusflag = MSG_SYS_INVIFri;
+            char temp[128];
+            if (SearchAccId(tar_id, temp) == NULL)      // 如果目标对象不存在直接退出
+                break;
+
+            sprintf(sendpack.strmsg, "[System] %d 请求添加你为好友", sourceid);
+
+            it = IdWithSock.find(tar_id);
+            if (it == IdWithSock.end())                 // 如果对方不在线
+            {
+                ret = OfflineMSG(&sendpack, tar_id, MSG_SYS_INVIFri);
+                if (ret < 0)
+                    my_err(__FILE__, "OfflineMSG", __LINE__, 1);
+            }
+            else
+            {
+                int tar_socket = IdWithSock[tar_id];
+                ret = SendMSG(tar_socket, &sendpack, PACK_SIZE, 0);
+                if (ret < 0)
+                    my_err(__FILE__, "SendMSG", __LINE__, 1);
+            }
+            break;
+        }
+        case Flag_Cmd_DelFri:
+        {
+            int tar_id = recvpack.target_id; 
+            ret = DelFriend(tar_id, sourceid);
+            get_time(NULL);
+            if (ret == 0)
+                fprintf(stderr, "删除好友过程中发生了一些问题。\n");
+            break;
+        }
+        case Flag_Cmd_LkFriList:
+        {
+            int count = 0;
+            char temp[FRI_NUM][50];
+            memset(temp, 0, sizeof(temp));
+            UserRelaList(sourceid, temp, 0);
+            if (temp == NULL)
+                count = 0;
+            else
+                while (temp[count] != 0)
+                    count++;
+            sendpack.statusflag = count;        // 第一次传输数据包的数目
+            memset(sendpack.strmsg, 0, sizeof(sendpack.strmsg));
+            ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
+            if (ret < 0)
+                my_err(__FILE__, "SendMSG", __LINE__, 1);
+
+            for (int i = 0; i < count; i++)
+            {
+                strcpy(sendpack.strmsg, temp[count]);
+                ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
+                if (ret < 0)
+                    my_err(__FILE__, "SendMSG", __LINE__, 1);
+            }
+            break;
+        }
+        case Flag_Cmd_LkGrpList:
+        {
+            int count = 0;
+            char temp[FRI_NUM][50];
+            memset(temp, 0, sizeof(temp));
+            UserRelaList(sourceid, temp, 1);
+            while (temp[count] != 0)
+                count++;
+            sendpack.statusflag = count;        // 第一次传输数据包的数目
+            memset(sendpack.strmsg, 0, sizeof(sendpack.strmsg));
+            ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
+            if (ret < 0)
+                my_err(__FILE__, "SendMSG", __LINE__, 1);
+
+            for (int i = 0; i < count; i++)
+            {
+                strcpy(sendpack.strmsg, temp[count]);
+                ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
+                if (ret < 0)
+                    my_err(__FILE__, "SendMSG", __LINE__, 1);
+            }
+            break;
+        }
+        case Flag_Cmd_SerIfInGrp:
+        {
+            int tar_id = recvpack.target_id;
+            ret = SearchOneInGrp(tar_id, sourceid);
+            sendpack.statusflag = ret;
+            ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
+            if (ret < 0)
+                my_err(__FILE__, "SendMSG", __LINE__, 0);
+            break;
+        }
+        case Flag_Cmd_ShiSome:
+        {
+            int tar_id = recvpack.target_id;
+            ShiFriend(sourceid, tar_id);
+            break;
+        }
+        case Flag_Cmd_CreateGrp:
+        {
+            // name + end + something + end
+            char * str1, * str2;
+            char grpname[USER_NAME_MAX + 1], something[OTHER_SIZE + 1];
+            str1 = strstr(recvpack.strmsg, _END_);
+            str2 = strstr(str1 + strlen(_END_), _END_);
+            strncpy(grpname, recvpack.strmsg, str1 - recvpack.strmsg);
+            grpname[str1 - recvpack.strmsg] = '\0';
+            strncpy(something, str1 + strlen(_END_), str2 - str1 - strlen(_END_));
+            something[str2 - str1 - strlen(_END_)] = '\0';
+
+            ret = CreateGroup(sourceid, grpname, something);
+            sendpack.statusflag = ret;
+
+            ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
+            if (ret < 0)            
+                my_err(__FILE__, "SendMSG", __LINE__, 1);
+        }
+        case Flag_Cmd_AddGrp:
+        {
+            int tar_id = recvpack.target_id, box[MEM_NUM + 1], temp, tar_socket, count = 0;
+            memset(box, 0, sizeof(box));
+            sendpack.cmdflag = Flag_Cmd_Msg;
+            sendpack.statusflag = MSG_SYS_AGRAGRP;  // 修改包为一个申请加群请求的消息包
+            sprintf(sendpack.strmsg, "[System] %d 请求加入群 %d", sourceid, tar_id);
+            
+            SearchStaGrp(tar_id, GRP_STA_CON, box + 1);
+            SearchStaGrp(tar_id, GRP_STA_OWN, box);
+            
+            while (box[count] != 0)
+            {
+                temp = box[count];
+                it = IdWithSock.find(temp);
+                if (it == IdWithSock.end())     // 如果不在线
+                {
+                    fprintf(stdout, "目标用户[%d]处于离线状态，私聊信息将存入数据库中\n", temp);
+                    ret = OfflineMSG(&sendpack, temp, MSG_GRPNOR);
+                    if (ret == 0)
+                        fprintf(stderr, "[ERROR] 离线消息存储失败\n");
+                }
+                else
+                {
+                    fprintf(stdout, "目标用户[%d]在线\n", temp);
+                    tar_socket = IdWithSock[temp];        // 目标套接字
+                    ret = SendMSG(tar_socket, &sendpack, PACK_SIZE, 0);
+                    if (ret < 0)
+                        my_err(__FILE__, "SendMSG", __LINE__, 1);
+                }
+                count++;
+            }
+        }
+        case Flag_Cmd_SyncOffMsg:
+        {
+            char offmsg[OffMsg_NUM][256];
+            memset(offmsg, 0, sizeof(offmsg));
+            int num = TransOffMsg(sourceid, offmsg);
+            sendpack.statusflag = num;
+            ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
+            if (ret < 0)
+                    my_err(__FILE__, "SendMSG", __LINE__, 0);                
+            for (int i = 0; i < num; i++)
+            {
+                strcpy(sendpack.strmsg, offmsg[i]);
+                ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
+                if (ret < 0)
+                    my_err(__FILE__, "SendMSG", __LINE__, 0);
+            }
+            break;
+        }
+        case Flag_Cmd_QuitGrp:      // 退群
         {
             break;
         }
-        case 6:
+        case Flag_Cmd_LkGrpMem:     // 查看群成员
         {
             break;
         }
-        case 7:
+        case Flag_Cmd_DisBand:      // 解散群
         {
             break;
         }
-        case 8:
+        case Flag_Cmd_SetCtrl:      // 设置管理员
         {
             break;
         }
-        case 9:
+        case Flag_Cmd_UnSetCtrl:    // 取消设置管理员
         {
             break;
         }
-        case 10:
+        case Flag_Cmd_RemvSome:     // 将某人移出群
         {
             break;
         }
-        case 11:
+        case Flag_Cmd_SendFile:     // 发文件
         {
             break;
         }
-        case 12:
+        case Flag_Cmd_RecvFile:     // 收文件
         {
             break;
         }
-        case 13:
+        case Flag_Cmd_InvAddFri:    // 同意添加好友请求
         {
+            // username + end + tarname + end
+            char * str1, * str2;
+            char username[USER_NAME_MAX + 1], tarname[USER_NAME_MAX + 1];
+            int tar_id = recvpack.target_id;
+
+            str1 = strstr(recvpack.strmsg, _END_);
+            str2 = strstr(str1 + strlen(_END_), _END_);
+
+            strncpy(username, recvpack.strmsg, str1 - recvpack.strmsg);
+            username[str1 - recvpack.strmsg] = '\0';
+            strncpy(tarname, str1 + strlen(_END_), str2 - str1 - strlen(_END_));
+            tarname[str2 - str1 - strlen(_END_)] = '\0';
+
+            ret = AddFriend(sourceid, tar_id, username, tarname);
+
+            if (ret == 0)
+            {
+                get_time(NULL);
+                fprintf(stderr, "同意添加好友失败");
+            }
+
             break;
         }
-        case 14:
+        case Flag_Cmd_InvAddMem:    // 同意加群请求
         {
-            break;
-        }
-        case 15:
-        {
-            break;
-        }
-        case 16:
-        {
-            break;
-        }
-        case 17:
-        {
-            break;
-        }
-        case 18:
-        {
-            break;
-        }
-        case 19:
-        {
-            break;
-        }
-        case 20:
-        {
-            break;
-        }
-        case 21:
-        {
-            break;
-        }
-        case 22:
-        {
-            break;
-        }
-        case 23:
-        {
+            // username + end + grpname + end
+            int grp_id = recvpack.target_id;
+            char username[USER_NAME_MAX + 1], grpname[USER_NAME_MAX + 1];
+            char * str1, * str2;
+            str1 = strstr(recvpack.strmsg, _END_);
+            str2 = strstr(str1 + strlen(_END_), _END_);
+
+            strncpy(username, recvpack.strmsg, str1 - recvpack.strmsg);
+            username[str1 - recvpack.strmsg] = '\0';
+            strncpy(grpname, str1 + strlen(_END_), str2 - str1 - strlen(_END_));
+            grpname[str2 - str1 - strlen(_END_)] = '\0';
+
+            ret = AddOneToGrp(sourceid, username, grp_id, grpname);
+            if (ret == 0)
+            {
+                get_time(NULL);
+                fprintf(stderr, "同意加群失败");
+            }
             break;
         }
         default:
         {
             get_time(NULL);
-            fprintf(stderr, "[Warnning] 接收到的客户端数据包异常\n\n");
+            fprintf(stderr, "[Warnning] 接收到的数据包异常\n\n");
             pthread_exit(0);
             break;
         }

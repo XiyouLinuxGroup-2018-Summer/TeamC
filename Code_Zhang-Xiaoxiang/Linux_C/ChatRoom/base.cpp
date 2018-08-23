@@ -21,14 +21,16 @@ int getch(void)
 // fun: 获取当前时间
 void get_time(char * string)
 {
-    time_t now;                 //实例化time_t结构
-    struct tm * timenow;        //实例化tm结构指针
-    time(&now);                 //time函数读取现在的时间(国际标准时间非北京时间)，然后传值给now
-    timenow = localtime(&now);  //localtime函数把从time取得的时间now换算成你电脑中的时间(就是你设置的地区)
+    time_t now;                 
+    struct tm * timenow;        
+    time(&now);                 
+    timenow = localtime(&now);
+    char temptime[55];
+    sprintf(temptime, "%d-%02d-%02d %d:%d:%d", timenow->tm_year + 1900, timenow->tm_mon + 1, timenow->tm_mday, timenow->tm_hour, timenow->tm_min, timenow->tm_sec);
     if (string == NULL)
-        printf("\n[time] %s\n",asctime(timenow));
+        printf("%s\n", temptime);
     else
-        strcpy(string, asctime(timenow));
+        strcpy(string, temptime);
 }
 
 // fun: 行输入
@@ -74,6 +76,6 @@ void my_err(const char * file, const char * err_string, int line, int flag)
     perror(err_string);
     if (!flag)
         exit(1);
-    else
-        pthread_exit(0);
+    // else
+        // pthread_exit(0);
 }

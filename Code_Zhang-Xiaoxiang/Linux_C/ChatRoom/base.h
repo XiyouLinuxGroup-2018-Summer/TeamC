@@ -77,6 +77,7 @@ char* s_getchs(char * st, int n);
 #define MEM_NUM             256         // 群成员限制
 #define FRI_NUM             256         // 好友上限
 #define GRP_NUM             100         // 加群上限
+#define OffMsg_NUM          99          // 离线消息上限
 
 // some ------------------------------------------------------------------
 #define _END_               "\r\t\n"    // empty msg or failed

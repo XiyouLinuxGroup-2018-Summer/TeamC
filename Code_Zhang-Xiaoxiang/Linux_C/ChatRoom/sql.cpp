@@ -1,5 +1,9 @@
 #include "sql.h"
 
+extern MYSQL * _mysql;
+extern MYSQL_ROW _row;
+extern MYSQL_RES * _res;
+
 void* sql_err(int line, MYSQL * _mysql)
 {
     fprintf(stderr, "%d: Error: %s\n", line, mysql_error(_mysql));
@@ -9,7 +13,7 @@ void* sql_err(int line, MYSQL * _mysql)
 char* SearchAccId(int id, char * acc)
 {
     int ret;
-    char sql[128];
+    char sql[256];
     sprintf(sql, "select * from `%s`.`%s` where id = %d;", Data_ChatBase, Table_Userlist, id);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
@@ -33,7 +37,7 @@ char* SearchAccId(int id, char * acc)
 int LoginAcc(int id, char * pass)
 {
     int ret;
-    char sql[128];
+    char sql[256];
     sprintf(sql, "select id, passmd5 from `%s`.`user_list` where id = %d AND passmd5 = md5('%s')", Data_ChatBase, id, pass);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
@@ -53,7 +57,7 @@ int LoginAcc(int id, char * pass)
 int RegACC(char * name, char * pass, char * problem, char * answer)
 {
     int ret, getid;
-    char sql[128];
+    char sql[256];
     sprintf(sql, "insert into `%s`.`user_list`(username, passmd5, question, answer) values('%s', md5('%s'), '%s', '%s');", Data_ChatBase, name, pass, problem, answer);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
@@ -74,17 +78,24 @@ int RegACC(char * name, char * pass, char * problem, char * answer)
         mysql_free_result(_res);    // 释放结果集
     }
     // 如果有旧表，删除
-    ret = mysql_real_query(_mysql, DEL_TABLE(Data_UserInfo, getid), strlen(DEL_TABLE(Data_UserInfo, getid)));
+    sprintf(sql, "drop table if exists `%s`.`%d`;", Data_UserInfo, getid);
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
+    if (ret)
+        sql_err(__LINE__, _mysql);
+
+    _res = mysql_store_result(_mysql);
+    mysql_free_result(_res);
+    // 开始为新用户重新创建表
+    sprintf(sql, "CREATE TABLE IF NOT EXISTS `%s`.`%d` ( `id`\
+    INT UNSIGNED NOT NULL, `name` VARCHAR(45) NOT NULL, `status` INT NOT NULL, `Shield` INT NOT NULL, PRIMARY KEY(`id`, `status`));", Data_UserInfo, getid);
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
         sql_err(__LINE__, _mysql);
     _res = mysql_store_result(_mysql);
     mysql_free_result(_res);
-    // 开始为新用户重新创建表
-    mysql_real_query(_mysql, USER_INFO_CRETABLE(Data_UserInfo, getid), strlen(USER_INFO_CRETABLE(Data_UserInfo, getid)));
-    _res = mysql_store_result(_mysql);
-    mysql_free_result(_res);
+
     // 为新用户创建一个离线消息记录表
-    sprintf(sql, "CREATE TABLE IF NOT EXISTS `%s`.`%d` (  `id` INT UNSIGNED NOT NULL, `status` INT NOT NULL, `msg` VARCHAR(512) NOT NULL, `time` DATETIME NOT NULL);", Data_OfflineMsg, getid);
+    sprintf(sql, "CREATE TABLE IF NOT EXISTS `%s`.`%d` ( `id` INT UNSIGNED NOT NULL, `target` INT NOT NULL, `status` INT NOT NULL, `msg` VARCHAR(512) NOT NULL, `time` DATETIME NOT NULL);", Data_OfflineMsg, getid);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
         sql_err(__LINE__, _mysql);
@@ -105,7 +116,7 @@ int AddFriend(int user_id, int friend_id, char * user_name, char * friend_name)
 int _AddFriend(int user_id, int friend_id, char * friend_name)
 {
     int ret;
-    char sql[128];
+    char sql[256];
     sprintf(sql, "insert into `%s`.`%d` values(%d, '%s', 0, 0);", Data_UserInfo, user_id, friend_id, friend_name);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
@@ -120,7 +131,7 @@ int _AddFriend(int user_id, int friend_id, char * friend_name)
 int ShiFriend(int user_id, int friend_id)
 {
     int ret;
-    char sql[128];
+    char sql[256];
     sprintf(sql, "update `%s`.`%d` set Shield = 1 where id = %d AND status = 0;", Data_UserInfo, user_id, friend_id);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
@@ -134,7 +145,7 @@ int ShiFriend(int user_id, int friend_id)
 int _DelFriend(int user_id, int friend_id)
 {
     int ret;
-    char sql[128];
+    char sql[256];
     sprintf(sql, "delete from `%s`.`%d` where id = %d AND status = 0;", Data_UserInfo, user_id, friend_id);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
@@ -151,10 +162,10 @@ int DelFriend(int user_id, int friend_id)
     return ret0 | ret1;
 }
 
-char** UserRelaList(int user_id, char * reststr[], int flag)
+char** UserRelaList(int user_id, char reststr[FRI_NUM][50], int flag)
 {
     int ret, count = 0, k;
-    char sql[128];
+    char sql[256];
     k = flag ? STA_GRP_NOR : STA_FRI_NOR;
     sprintf(sql, "select id, name, Shield from `%s`.`%d` where status = %d order by id;", Data_UserInfo, user_id, k);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
@@ -174,13 +185,13 @@ char** UserRelaList(int user_id, char * reststr[], int flag)
     }
     mysql_free_result(_res);
 
-    return reststr;
+    return (char**)reststr;
 }
 
 int CreateGroup(int owner_id, char * name, char * something)
 {
     int ret, groupid;
-    char sql[128];
+    char sql[256];
     // 在ChatR_Base中加入内容
     if (something != NULL)
         sprintf(sql, "insert into `%s`.`%s`(name, create_time, member_num, introduction) values ('%s', CURDATE(), 1, '%s');", Data_ChatBase, Table_Grouplist, name, something);
@@ -203,7 +214,8 @@ int CreateGroup(int owner_id, char * name, char * something)
     groupid = atoi(_row[0]);
 
     // 清除残余表
-    ret = mysql_real_query(_mysql, DEL_TABLE(Data_GroupInfo, groupid), strlen(DEL_TABLE(Data_GroupInfo, groupid)));
+    sprintf(sql, "drop table if exists `%s`.`%d`;", Data_GroupInfo, groupid);
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
         sql_err(__LINE__, _mysql);
     _res = mysql_store_result(_mysql);
@@ -239,7 +251,7 @@ int CreateGroup(int owner_id, char * name, char * something)
 char* SearchGrpId(int id, char * grp)
 {
     int ret;
-    char sql[128];
+    char sql[256];
     sprintf(sql, "select * from `%s`.`%s` where id = %d;", Data_ChatBase, Table_Grouplist, id);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
@@ -263,7 +275,7 @@ char* SearchGrpId(int id, char * grp)
 int AddOneToGrp(int user_id, char * user_name, int grp_id, char * grp_name)
 {
     int ret;
-    char sql[128];
+    char sql[256];
     sprintf(sql, "insert into `%s`.`%s` values(%d, '%s', %d);", Data_GroupInfo, grp_id, user_id, user_name, GRP_STA_NOR);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
@@ -284,7 +296,7 @@ int AddOneToGrp(int user_id, char * user_name, int grp_id, char * grp_name)
 int GrpMemberList(int grp_id, int mem_id[MEM_NUM], char mem_name[MEM_NUM][USER_NAME_MAX + 1], int mem_sta[MEM_NUM])
 {
     int ret, count = 0;
-    char sql[128];
+    char sql[256];
     sprintf(sql, "select id, name, status from `%s`.`%s`;", Data_GroupInfo, grp_id);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)    
@@ -316,7 +328,7 @@ int OfflineMSG(Package * msg, int tar_id, int flag)
 {
     int ret;
     char sql[1024];
-    sprintf(sql, "insert into `%s`.%d` values( %d, %d, %s, now());", Data_OfflineMsg, tar_id, msg->source_id, flag, msg->strmsg);
+    sprintf(sql, "insert into `%s`.%d` values( %d, %d, %d, '%s', now());", Data_OfflineMsg, tar_id, msg->source_id, msg->target_id, flag, msg->strmsg);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
     if (ret)
         sql_err(__LINE__, _mysql);
@@ -324,4 +336,77 @@ int OfflineMSG(Package * msg, int tar_id, int flag)
 
     mysql_free_result(_res);
     return 1;
+}
+
+// 在群里查找 id == needs_id 的用户
+int SearchOneInGrp(int grp_id, int needs_id)
+{
+    int ret;
+    char sql[256];
+    sprintf(sql, "select id from `%s`.`%d` where id = %d;", Data_GroupInfo, grp_id, needs_id);
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
+    if (ret)
+        sql_err(__LINE__, _mysql);
+    _res = mysql_store_result(_mysql);
+    if (_res == NULL)
+    {
+        if (mysql_field_count(_mysql) == 0)
+            return 0;
+        else
+            sql_err(__LINE__, _mysql);
+    }
+    _row = mysql_fetch_row(_res);
+    mysql_free_result(_res);
+
+    return 1;
+}
+
+// 在群里查询 身份为　status 的用户，　并将id存入box数组中
+int* SearchStaGrp(int grp_id, int status, int box[MEM_NUM])
+{
+    int ret, count = 0;
+    char sql[256];
+    sprintf(sql, "select id from `%s`.`%d` where status = %d;", Data_GroupInfo, grp_id, status);
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
+    if (ret)
+        sql_err(__LINE__, _mysql);
+    _res = mysql_store_result(_mysql);
+    if (_res == NULL)
+    {
+        if (mysql_field_count(_mysql) == 0)
+            return NULL;
+        else
+            sql_err(__LINE__, _mysql);
+    }
+    while ((_row = mysql_fetch_row(_res)))
+    {
+        box[count++] = atoi(_row[0]);
+    }
+    mysql_free_result(_res);
+    return box;
+}
+
+// 给用户传递离线消息 
+int TransOffMsg(int usr_id, char message[OffMsg_NUM][256])
+{
+    int ret, count = 0;
+    char sql[256];
+    sprintf(sql, "select id, target, status, msg, time from `%s`.`%d` order by status asc, id asc, time asc;", Data_OfflineMsg, usr_id);
+    ret = mysql_real_query(_mysql, sql,strlen(sql));
+    if (ret)
+        sql_err(__LINE__, _mysql);
+    _res = mysql_store_result(_mysql);
+    if (_res == NULL)
+    {
+        if (mysql_field_count(_mysql) == 0)
+            return 0;
+        else
+            sql_err(__LINE__, _mysql);        
+    }
+    while ((_row = mysql_fetch_row(_res)))
+    {
+        sprintf(message[count], "%s%s%s%s%s%s%s%s%s%s", _row[0], _END_, _row[1], _END_, _row[2], _END_, _row[3], _END_, _row[4], _END_);
+        count++;
+    }
+    return count;
 }

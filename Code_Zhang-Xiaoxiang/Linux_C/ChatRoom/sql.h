@@ -34,11 +34,6 @@
 #define Table_Grouplist     "group_list"      
 #define Data_UserInfo       "user_info"
 #define Data_GroupInfo      "group_info"
-// 为新用户创建列表模板
-#define USER_INFO_CRETABLE(database, x) "CREATE TABLE IF NOT EXISTS `"#database"`.`"#x"` ( `id`\
-    INT UNSIGNED NOT NULL, `name` VARCHAR(45) NOT NULL, `status` INT NOT NULL, `Shield` INT NOT NULL, PRIMARY KEY(`id`, `status`));"
-// 删除某张表
-#define DEL_TABLE(database, x) "drop table if exists `"#database"`.`"#x"`;"
 
 // Data_UserInfo 状态信息
 #define STA_FRI_NOR         0       // 好友正常状态
@@ -48,11 +43,6 @@
 #define GRP_STA_OWN         2       // 群主
 #define GRP_STA_CON         1       // 管理员
 #define GRP_STA_NOR         0       // 普通群员
-
-// 数据库操作句柄等全局变量
-static MYSQL * _mysql = NULL;
-static MYSQL_ROW _row;
-static MYSQL_RES * _res;
 
 /* ----------------------------------- function ----------------------------------- */
 
@@ -111,7 +101,7 @@ int DelFriend(int user_id, int friend_id);
 //               _END_ 分割参数，以NULL结尾
 // arg->flag: flag = 0, 好友列表，flag = 1, 群组列表
 // return: 成功返回指向 reststr 的指针，发生错误返回NUll
-char** UserRelaList(int user_id, char * reststr[], int flag);
+char** UserRelaList(int user_id, char reststr[FRI_NUM][50], int flag);
 
 // fun: 创建群
 // note: 更新ChatR_Base.group_list, 为群组新建一个表， 为新建的表添加数据，更新群主(用户)的关系列表
@@ -125,12 +115,21 @@ char* SearchGrpId(int id, char * grp);
 
 // fun: 加入群组
 // note: 修改群组成员信息，修改个人关系列表
-int AddOneToGrp(int user_id, int grp_id);
+int AddOneToGrp(int user_id, char * user_name, int grp_id, char * grp_name);
 
 // fun: 群成员列表
 int GrpMemberList(int grp_id, int mem_id[MEM_NUM], char mem_name[MEM_NUM][USER_NAME_MAX + 1], int mem_sta[MEM_NUM]);
 
 // fun: 离线消息
 int OfflineMSG(Package * msg, int tar_id, int flag);
+
+// 在群里查找 id == needs_id 的用户
+int SearchOneInGrp(int grp_id, int needs_id);
+
+// 在群里查询 身份为　status 的用户，　并将id存入box数组中
+int* SearchStaGrp(int grp_id, int status, int box[MEM_NUM]);
+
+// 给用户传递离线消息 
+int TransOffMsg(int usr_id, char message[OffMsg_NUM][256]);
 
 #endif
