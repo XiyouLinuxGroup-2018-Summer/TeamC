@@ -1,6 +1,21 @@
 {
     "files.associations": {
         "history.h": "c",
-        "readline.h": "c"
-    }
+        "readline.h": "c",
+        "pthread.h": "c",
+        "pthreadtypes.h": "c",
+        "socket.h": "c",
+        "my_recv.h": "c",
+        "stdlib.h": "c",
+        "term.h": "c",
+        "stdio.h": "c",
+        "unistd.h": "c",
+        "mysql.h": "c",
+        "string_view": "c",
+        "string.h": "c",
+        "base.h": "c",
+        "internet.h": "c",
+        "typeinfo": "cpp"
+    },
+    // "cmake.configureOnOpen": false
 }
