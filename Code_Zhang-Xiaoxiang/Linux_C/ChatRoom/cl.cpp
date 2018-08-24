@@ -292,7 +292,7 @@ void* InitiaClient(void * arg)
     myFriend.clear();
     myGroup.clear();
     // 发送请求，获取离线消息
-    // GetOffMSG(); 
+    GetOffMSG(); 
 
     pthread_exit(0);
 }
@@ -309,7 +309,7 @@ void GetOffMSG(void)
     if (ret < 0)
         my_err(__FILE__, "SendMSG", __LINE__, 0);
 
-    ret = RecvMSG(sock_fd, &recvpack, __LINE__, 0);     // 接受包的数量
+    ret = RecvMSG(sock_fd, &recvpack, PACK_SIZE, 0);     // 接受包的数量
     if (ret < 0)
         my_err(__FILE__, "RecvMSG", __LINE__, 0);
     if (ret == 0)
@@ -318,12 +318,13 @@ void GetOffMSG(void)
         my_err(__FILE__, "RecvMSG", PACK_SIZE, 0);
     }
     num = recvpack.statusflag;
-    printf("%d\n", num);
+    // printf("%d\n", num);
 
     for (int i = 0; i < num; i++)
     {
         ret = RecvMSG(sock_fd, &recvpack, PACK_SIZE, 0);
-        printf("ret = %d\n", ret);
+        // printf("ret = %d\n", ret);
+        // printf("msg: %s\n", recvpack.strmsg);
         if (ret < 0)
             my_err(__FILE__, "SendMSG", __LINE__, 0);
         if (ret == 0)
@@ -553,7 +554,7 @@ void FunFriendMenu(int tarid)
     }
 }
 
-void FunGroupMenu()
+// void FunGroupMenu()
 
 // kind = 1, 私聊
 // kind = 0, 群聊

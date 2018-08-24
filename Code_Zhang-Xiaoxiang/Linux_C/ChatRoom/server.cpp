@@ -507,12 +507,44 @@ void* pthreadFun(void * arg)
             }
             break;
         }
-        case Flag_Cmd_QuitGrp:      // 退群
-        {
-            break;
-        }
         case Flag_Cmd_LkGrpMem:     // 查看群成员
         {
+            int grp_id = recvpack.target_id;
+            int memid[MEM_NUM], mem_sta[MEM_NUM];
+            char memname[MEM_NUM][USER_NAME_MAX + 1];
+            memset(memid, 0, sizeof(memid));
+            memset(memid, 0, sizeof(memid));
+            memset(memid, 0, sizeof(memid));
+
+            int num = GrpMemberList(grp_id, memid, memname, mem_sta);
+
+            sendpack.cmdflag = Flag_Cmd_LkGrpMem;
+            sendpack.source_id = sourceid;
+            sendpack.statusflag = num;
+            sendpack.target_id = grp_id;
+
+            ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
+            if (ret < 0)
+                my_err(__FILE__, "SendMSG", __LINE__, 0);
+            printf("获取第一次数据包成功, 还要发送%d个包\n", num);
+            
+            for (int i = 0; i < num; i++)
+            {
+                char temp[MSG_SIZE];
+                sprintf(temp, "%d%s%s%s%d%s", memid[i], _END_, memname[i], _END_, mem_sta[i], _END_);
+                printf("temp: %s\n", temp);
+                sendpack.cmdflag = Flag_Cmd_LkGrpMem;
+                sendpack.source_id = sourceid;
+                sendpack.statusflag = num;
+                sendpack.target_id = grp_id;
+                strcpy(sendpack.strmsg, temp);
+
+                ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
+                if (ret < 0)
+                    my_err(__FILE__, &sendpack, __LINE__, 0);
+                printf("%d > 获取包成功\n", i + 1);
+            }
+
             break;
         }
         case Flag_Cmd_DisBand:      // 解散群
@@ -529,6 +561,11 @@ void* pthreadFun(void * arg)
         }
         case Flag_Cmd_RemvSome:     // 将某人移出群
         {
+            int sor = recvpack.source_id;   // 群id
+            int tar = recvpack.target_id;   // 用户id
+            
+            
+    
             break;
         }
         case Flag_Cmd_SendFile:     // 发文件

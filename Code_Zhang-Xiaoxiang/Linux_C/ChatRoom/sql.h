@@ -119,6 +119,9 @@ char* SearchGrpId(int id, char * grp);
 // note: 修改群组成员信息，修改个人关系列表
 int AddOneToGrp(int user_id, char * user_name, int grp_id, char * grp_name);
 
+// fun: 把某人移出群
+int RemOneFromGrp(int user_id, int grp_id);
+
 // fun: 群成员列表
 int GrpMemberList(int grp_id, int mem_id[MEM_NUM], char mem_name[MEM_NUM][USER_NAME_MAX + 1], int mem_sta[MEM_NUM]);
 
@@ -133,5 +136,8 @@ int* SearchStaGrp(int grp_id, int status, int box[MEM_NUM]);
 
 // 给用户传递离线消息 
 int TransOffMsg(int usr_id, char message[OffMsg_NUM][256]);
+
+// fun: 删除群
+void DelGroup(int grp_id);
 
 #endif

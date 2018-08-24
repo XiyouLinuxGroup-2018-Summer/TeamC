@@ -508,3 +508,113 @@ int TransOffMsg(int usr_id, char message[OffMsg_NUM][256])
     }
     return count;
 }
+
+// 从群组中移除一个人
+int ReOneFromGrp(int user_id, int grp_id)
+{
+    int ret;
+    char sql[512];
+    MYSQL_RES * _res;
+    sprintf(sql, "delete from `%d`.`%d` where id = %d AND status = %d;", Data_UserInfo, user_id, grp_id, STA_GRP_NOR);
+#ifdef DEBUG
+    printf("移除用户关系表中的群组信息\n");
+    printf("sql: %s\n", sql);
+#endif
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
+    if (ret)
+    {
+        fprintf(stderr, "%s\n", sql);
+        sql_err(__LINE__, _mysql);
+    }
+    _res = mysql_store_result(_mysql);
+    mysql_free_result(_res);
+
+    sprintf(sql, "delete from '%s`.`%s` where id = %d;", Data_GroupInfo, grp_id, user_id);
+#ifdef DEBUG
+    printf("移除群组成员相关信息\n");
+    printf("sql: %s\n", sql);
+#endif
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
+    if (ret)
+    {
+        fprintf(stderr, "%s\n", sql);
+        sql_err(__LINE__, _mysql);
+    }
+    _res = mysql_store_result(_mysql);
+    mysql_free_result(_res);
+
+    return 1;
+}
+
+// 删除群
+void DelGroup(int grp_id)
+{
+    int ret, count;
+    char sql[512];
+    int memid[MEM_NUM];
+    MYSQL_RES * _res;
+    MYSQL_ROW _row;
+
+    sprintf(sql, "delete from `%s`.`%d` where id = %d;", Data_ChatBase, Table_Grouplist, grp_id);
+    #ifdef DEBUG
+    printf("删除群 - 删除基础表中的群记录\n");
+    printf("sql: %s\n", sql);
+    #endif
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
+    if (ret)
+    {
+        fprintf(stderr, "%s\n", sql);
+        sql_err(__LINE__, _mysql);
+    }
+    _res = mysql_store_result(_mysql);
+    mysql_free_result(_res); 
+
+    sprintf(sql, "select id from `%s`.`%s`;", Data_UserInfo, grp_id);
+    #ifdef DEBUG
+    printf("删除群 - 删除群里的每个用户\n");
+    printf("sql: %s\n", sql);
+    #endif
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
+    if (ret)
+    {
+        fprintf(stderr, "%s\n", sql);
+        sql_err(__LINE__, _mysql);
+    }
+    _res = mysql_store_result(_mysql);
+    count = 0;
+    while ((_row = mysql_fetch_row(_res)))
+    {
+        memid[count] = atoi(_row[0]);
+        count++;      
+    }
+    mysql_free_result(_res); 
+    for (int i = 0; i < count; i++)
+    {
+        ReOneFromGrp(memid[i], grp_id);
+    }
+
+    // 最后删群成员列表，需要查看群成员列表来删除对应用户的关系表
+    sprintf(sql, "drop table `%s`.`%d`;", Data_UserInfo, grp_id);
+    #ifdef DEBUG
+    printf("删除群 - 删除群组成员列表\n");
+    printf("sql: %s\n", sql);
+    #endif
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
+    if (ret)
+    {
+        fprintf(stderr, "%s\n", sql);
+        sql_err(__LINE__, _mysql);
+    }
+    _res = mysql_store_result(_mysql);
+    mysql_free_result(_res); 
+}
+
+// 设置管理员
+void SetCtrl(int grp_id, int user_id)
+{
+    int ret;
+    char sql[512];
+    sprintf(sql, "update `%s`.`%d` set status = %d where id = %d", Data_GroupInfo, grp_id, GRP_STA_CON, user_id);
+    #ifdef DEBUG
+    #endif
+}
