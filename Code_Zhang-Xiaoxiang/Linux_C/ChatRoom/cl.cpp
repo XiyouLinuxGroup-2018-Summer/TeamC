@@ -105,11 +105,13 @@ int main(void)
                         my_err(__FILE__, "pthread_create", __LINE__, 0);
                     for (int i = 10; i > 0; i--)
                     {
-                        printf("%2d 秒后按任意键继续", i);
+                        printf("%2d 秒后按回车键继续", i);
                         fflush(stdout);
                         sleep(1);
                         printf("\r");
                     }
+                    while (getchar() != '\n')
+                        ;
                     printf("\n");
                     loopflag = 0;
                 }
@@ -278,7 +280,7 @@ void* PrecvMSG(void * arg)
                 }
                 break;
             }
-
+            // case Flag_
         }   
     }
 }
@@ -290,7 +292,7 @@ void* InitiaClient(void * arg)
     myFriend.clear();
     myGroup.clear();
     // 发送请求，获取离线消息
-    GetOffMSG(); 
+    // GetOffMSG(); 
 
     pthread_exit(0);
 }
@@ -483,7 +485,7 @@ void PrintGrpList()
 {
     int num = (int)myGroup.size();             // 获取大小
     if (num == 0)
-        printf("好友列表为空\n");
+        printf("群组列表为空\n");
     for (int i = 0; i < num; i++)
         printf("[%d] '%s' %s\n", myGroup[i].id, myGroup[i].name, myGroup[i].shield ? "×" : " ");
 }
@@ -550,6 +552,8 @@ void FunFriendMenu(int tarid)
             printf("无效命令\n");
     }
 }
+
+void FunGroupMenu()
 
 // kind = 1, 私聊
 // kind = 0, 群聊

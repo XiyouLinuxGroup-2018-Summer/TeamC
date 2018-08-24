@@ -322,8 +322,6 @@ void* pthreadFun(void * arg)
 
             break;
         }
-        // case 4:
-        //     break;
         case Flag_Cmd_AddFri:                   // 添加好友请求
         {
             int tar_id = recvpack.target_id;            // 要加的对象
@@ -431,14 +429,12 @@ void* pthreadFun(void * arg)
             ShiFriend(sourceid, tar_id);
             break;
         }
-
         case Flag_Cmd_UnShiSome:
         {
             int tar_id = recvpack.target_id;
             UnShiFriend(sourceid, tar_id);
             break;
         }
-
         case Flag_Cmd_CreateGrp:
         {
             // name + end + something + end
