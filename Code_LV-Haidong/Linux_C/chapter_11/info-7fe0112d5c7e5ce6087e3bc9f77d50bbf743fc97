@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>SW408_磁力链接ed2k迅雷下载_种子搜磁力搜索</title>
+<meta name="keywords" content="SW408,种子搜,种子帝,磁力链接,磁力搜索,ed2k,种子搜索,BT种子,BT种子搜索,迅雷种子,迅雷下载,BT搜索,磁力链接搜索" />
+<meta name="description" content="SW408的磁力链接,迅雷链接,迅雷下载,磁力下载,bt种子下载" />
+
+<link href="//apps.bdimg.com/libs/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="/Public/css/index.css">
+
+
+<!--[if lt IE 9]>
+    <script src="//cdn.bootcss.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="//cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+<script src="//libs.baidu.com/jquery/1.11.3/jquery.js"></script>
+
+<script src="/js/adurl.js?v=2" charset="utf-8"></script>
+<script>
+        (function(){
+            var bp = document.createElement('script');
+            var curProtocol = window.location.protocol.split(':')[0];
+            if (curProtocol === 'https') {
+                bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+            }
+            else {
+                bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+            }
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(bp, s);
+        })();
+        function rwurl(myform){
+            if(document.getElementById("search").value!="")
+            {
+                window.location.href="/list/"+encodeURIComponent(document.getElementById("search").value)+"/1";
+            }else{
+                return false;
+            }
+        }
+    </script>
+<script>
+        $(function () {
+            var log = function(s){window.console && console.log(s)}
+            $('.nav-tabs a:last').tab('show');
+            $('a[data-toggle="tab"]').on('show', function (e) {
+                log(e);
+            })
+            $('a[data-toggle="tab"]').on('shown', function (e) {
+                log(e.target); // activated tab
+                log(e.relatedTarget); // previous tab
+            })
+        })
+
+
+    </script>
+
+</head>
+<body>
+<script src="/js/w1.js?v=2"></script>
+<div class="container">
+<nav class="navbar navbar-default navbar-fixed-top">
+<div class="container-fluid">
+
+<div class="navbar-header">
+<a class="navbar-brand" href="/"><span class="visible-lg-block"><i class="glyphicon glyphicon-magnet"></i>&nbsp;zhongziso</span><span class="hidden-lg"><i class="glyphicon glyphicon-magnet"></i></span></a>
+<div class="navbar-newform">
+<form class="form-group form-inline" method="get" id="topsearch" name="search">
+<div class="input-group">
+<input type="text" class="form-control" baidusug="2" onkeydown="if(event.keyCode==13) {rwurl();return false;}" name="kw" id="search" placeholder="你想要的?">
+<span class="input-group-btn">
+<button class="btn btn-success" onclick="rwurl();" type="button"><i class="fa fa-caret-right margin-left-sm margin-right-sm"></i><span class="glyphicon glyphicon-search"></span>&nbsp;搜索</button>
+</span>
+</div>
+</form>
+</div>
+<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+<span class="sr-only">zhongziso</span>
+<span class="icon-bar"></span>
+<span class="icon-bar"></span>
+<span class="icon-bar"></span>
+</button>
+</div>
+
+<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+<ul class="nav navbar-nav navbar-right">
+<li class="active"><a href="/"><span class="glyphicon glyphicon-home"></span>&nbsp;首页 <span class="sr-only">首页</span></a></li>
+<li class="dropdown">
+<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-wrench"></span>&nbsp;功能 <span class="caret"></span></a>
+<ul class="dropdown-menu">
+<li><a href="#">磁力转BT</a></li>
+<li role="separator" class="divider"></li>
+<li><a href="#">BT转磁力</a></li>
+<li role="separator" class="divider"></li>
+<li><a href="#">关于</a></li>
+<li role="separator" class="divider"></li>
+<li><a href="#"><span class="glyphicon glyphicon-play"></span>&nbsp;使用教程</a></li>
+<li role="separator" class="divider"></li>
+<li><a href="#"><span class="glyphicon glyphicon-eye-open"></span>&nbsp;免责声明</a></li>
+</ul>
+</li>
+<li><a href="#"><span class="glyphicon glyphicon-import"></span>&nbsp;磁力助手</a></li>
+</ul>
+</div>
+
+</div>
+</nav>
+<div class="container torrentme">
+<div class="row visible-lg">
+<div class="col-lg-12 ">
+<div class="add ">
+</div>
+</div>
+</div>
+<p />
+
+<div class="panel panel-primary">
+<div class="panel-heading ">
+<span class="text-left">
+SW408 </span>
+</div>
+<div class="panel-body">
+<textarea id="copytext" class="magnetlink form-control" rows="3" onclick="$(this).select();" readonly>magnet:?xt=urn:btih:7fe0112d5c7e5ce6087e3bc9f77d50bbf743fc97&amp;dn=SW408                 </textarea>
+</div>
+<div class="panel-footer">
+<ul class="nav nav-tabs">
+<a class="btn btn-sm btn-warning" href="javascript:;" onclick="window.open('https://'+adurl10+'/Jiexi/index/magnet:?xt=urn:btih:7fe0112d5c7e5ce6087e3bc9f77d50bbf743fc97&ref=1008')" target=_blank><span class="glyphicon glyphicon-cloud"></span>&nbsp;在线云播</span></a>
+<a href="#qrcode" class="btn btn-sm btn-danger" data-toggle="collapse"><span class="glyphicon glyphicon-qrcode"></span>&nbsp;二维码 </a>
+<a href="magnet:?xt=urn:btih:7fe0112d5c7e5ce6087e3bc9f77d50bbf743fc97" class="btn btn-sm btn-success"><span class="glyphicon glyphicon-magnet"></span>&nbsp;磁力下载</a>
+<a id="d_clip_button" class="btn btn-sm btn-warning" data-clipboard-target="copytext"><span class="glyphicon glyphicon-floppy-saved"></span>&nbsp;复制磁力</span></a>
+<a href="thunder://QUFtYWduZXQ6P3h0PXVybjpidGloOjdmZTAxMTJkNWM3ZTVjZTYwODdlM2JjOWY3N2Q1MGJiZjc0M2ZjOTdaWg==" id="copyi" class="btn btn-sm btn-success"><span class="glyphicon glyphicon-download-alt"></span>&nbsp;迅雷下载</a>
+<a class="btn btn-sm btn-primary" href="javascript:;" onclick="window.open('http://'+adurl1+'')" target=_blank> <span class="glyphicon glyphicon-share"></span>&nbsp;<script>document.writeln("\u7687\u51a0\u5f00\u6237");</script></a>
+</ul>
+<div class="tab-content">
+<div class="collapse" id="qrcode">
+<img src="/lib/qr_code.php?txt=magnet:?xt=urn:btih:7fe0112d5c7e5ce6087e3bc9f77d50bbf743fc97" alt="{$name}的二维码" class="img-responsive" width="178" height="170">
+</div>
+</div>
+</div>
+</div>
+
+<div class="row">
+<div class="col-md-9">
+<div class="panel panel-primary">
+<div class="page-headeing">
+<ul class="nav nav-tabs" id="myTab">
+<li class="active"><a href="#home">磁力链接详情</a></li>
+<li><a href="#profile">文件列表详情</a></li>
+</ul>
+</div>
+<div class="tab-content">
+<div class="tab-pane panel-body active" id="home">
+<ul class="list-group">
+<li class="list-group-item visible-lg">
+<span class="badge">7fe0112d5c7e5ce6087e3bc9f77d50bbf743fc97</span>
+infohash:
+</li>
+<li class="list-group-item">
+<span class="badge">
+6 </span>
+文件数量
+</li>
+<li class="list-group-item">
+<span class="badge">1.47 GB</span>
+文件大小
+</li>
+<li class="list-group-item">
+<span class="badge">2016-9-13 09:10</span>
+创建日期
+</li>
+<li class="list-group-item">
+<span class="badge">2018-8-19 17:34</span>
+最后访问
+</li>
+<li class="list-group-item">
+<span class="col-sm-2" style="padding-left:0px">相关分词</span>
+<span class="fenci col-sm-10" style=" text-align:right;padding-right:0px">
+<a href="//www.jianyulou.com">在线阅读</a>&nbsp; <a href="//www.3d47.com">磁力搜索</a>&nbsp;<a href="//www.838888.net">磁力链接</a>&nbsp;<a href="//www.fanhaolou.com">番号楼</a>&nbsp;
+<a target="_blank" href="/list/SW408/1">SW408</a>
+</span>
+<div class="clearfix"></div>
+</li>
+</ul>
+</div>
+<div class="tab-pane" id="profile">
+<div class="panel-body">
+<select multiple class="form-control" rows="8" style="height: 100px;">
+<option>维多利亚娱乐城.avi&nbsp;&nbsp;&nbsp;&nbsp;4.91 MB</option>
+<option>QQ群真人祼聊，免費試看.avi&nbsp;&nbsp;&nbsp;&nbsp;12.54 MB</option>
+<option>SW408.avi&nbsp;&nbsp;&nbsp;&nbsp;1.44 GB</option>
+<option>手機看片神器，全部免費.avi&nbsp;&nbsp;&nbsp;&nbsp;4.2 MB</option>
+<option>水舞間娛樂城，更多返水贈品機制.avi&nbsp;&nbsp;&nbsp;&nbsp;5.34 MB</option>
+<option>麗景灣娛樂城.avi&nbsp;&nbsp;&nbsp;&nbsp;4.19 MB</option>
+</select>
+</div>
+</div>
+</div>
+<script>
+                        $(function () {
+                            $('#myTab a:first').tab('show');//初始化显示哪个tab 
+
+                            $('#myTab a').click(function (e) {
+                                e.preventDefault();//阻止a链接的跳转行为 
+                                $(this).tab('show');//显示当前选中的链接及关联的content 
+                            })
+                        })
+                    </script>
+</div>
+</div>
+<div class="col-md-3">
+<div class="panel panel-primary">
+<div class="panel-heading">其他位置</div>
+<div class="panel-body">
+</div>
+<div class="panel-footer">已交付押金担保，请玩家放心娱乐。</div>
+</div>
+</div>
+</div>
+
+<div class="row">
+<div class="col-lg-12 ">
+<div class="add ">
+</div>
+</div>
+</div>
+</div>
+</div>
+<footer class="footer">
+<div class="container">
+<p class="muted credit text-center"><strong><script language="JavaScript" src="/js/tongji.js"></script><strong>
+<script src="//www.zhongziso.com/js/sj.js"></script> m.zhongziso.com <a href="//m.zhongziso.com">种子搜</a><a href="//m.zhongzidi.com">种子帝</a><a href="//m.zhongziso.com">磁力链接</a></strong></p>
+</div>
+<script src="//cdn.staticfile.org/jquery/3.1.0/jquery.js"></script>
+<script src="//apps.bdimg.com/libs/jquery.cookie/1.4.1/jquery.cookie.js"></script>
+</footer>
+
+
+<script src="//apps.bdimg.com/libs/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+<script charset="gbk" src="//www.baidu.com/js/opensug.js"></script>
+</body>
+</html>
+<script type="text/javascript" src="/Public/js/ZeroClipboard.js"></script>
+<script type="text/javascript">
+    // 定义一个新的复制对象
+    var clip = new ZeroClipboard( document.getElementById("d_clip_button"), {
+        moviePath: "/Public/js/ZeroClipboard.swf"
+    } );
+
+    // 复制内容到剪贴板成功后的操作
+    clip.on( 'complete', function(client, args) {
+        alert("复制成功，复制内容为："+ args.text);
+    } );
+
+</script>
