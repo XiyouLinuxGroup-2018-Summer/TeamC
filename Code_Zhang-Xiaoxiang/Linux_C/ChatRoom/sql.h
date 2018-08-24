@@ -101,7 +101,7 @@ int DelFriend(int user_id, int friend_id);
 //               _END_ 分割参数，以NULL结尾
 // arg->flag: flag = 0, 好友列表，flag = 1, 群组列表
 // return: 成功返回指向 reststr 的指针，发生错误返回NUll
-char** UserRelaList(int user_id, char reststr[FRI_NUM][50], int flag);
+int UserRelaList(int user_id, char reststr[FRI_NUM][50], int flag);
 
 // fun: 创建群
 // note: 更新ChatR_Base.group_list, 为群组新建一个表， 为新建的表添加数据，更新群主(用户)的关系列表

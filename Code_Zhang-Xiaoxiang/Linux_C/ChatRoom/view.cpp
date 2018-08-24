@@ -112,7 +112,7 @@ int vLogin(Package * data, int sockfd)
         else
             break;
     }
-
+    while(getchar() != '\n');
     printf("           please input password[%d ~ %d]:        \n", USER_PASS_MIN, USER_PASS_MAX);
     printf("\t\tpassword: ");
     S_SAVEPOS();
@@ -131,7 +131,12 @@ int vLogin(Package * data, int sockfd)
     ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
     if (ret < 0)
         my_err(__FILE__, "RecvMSG", __LINE__, 0);
-    return recvpack.statusflag;
+    if (recvpack.statusflag == 0)
+    {
+        fprintf(stderr, "%s", recvpack.strmsg);
+        return 0;
+    }
+    return userid;
 }
 
 void vAbout(void)
@@ -226,3 +231,28 @@ int vFunFriendMenu(void)
     }while(1); 
 }
 
+int vFunGroupMenu(int status)
+{
+    int cmd;
+    do
+    {
+        S_CLEAR(); 
+        //S_BLOD(); S_COLOR(40, 33);
+        printf("                  - Function -                   \n\n");    
+        // S_CLOSE();
+        printf("\t\t[1] 聊天\t\t\t\n");
+        printf("\t\t[2] 查看聊天记录\t\t\t\n");
+        printf("\t\t[3] 查看群成员\t\t\t\n");
+        // if (status != )
+        printf("\t\t[4] 退出群\t\t\t\n");
+        printf("\t\t[5] 返回\t\t\t\n");
+        // S_BLOD(); S_COLOR(40, 33);
+        printf("\n-------------------------------------------------\n");
+        // S_CLOSE();
+        printf("\nYour Choice is :\t");
+        scanf("%d", &cmd);
+        while (getchar() != '\n');
+        if (cmd > 0 && cmd <= 7)
+            return cmd;
+    }while(1); 
+}

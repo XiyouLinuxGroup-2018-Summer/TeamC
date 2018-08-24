@@ -76,6 +76,6 @@ void my_err(const char * file, const char * err_string, int line, int flag)
     perror(err_string);
     if (!flag)
         exit(1);
-    // else
-        // pthread_exit(0);
+    else
+        pthread_exit(0);
 }

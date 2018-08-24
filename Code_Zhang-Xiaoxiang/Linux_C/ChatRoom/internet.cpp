@@ -28,7 +28,7 @@ int RecvMSG(int socket, Package* msg, int pSize, int flags)
             return -1;
         if (len == 0)
         {
-            printf("666666666666666666666666666666666666666\n");           
+            printf("recv: 对方失去响应\n"); 
             return 0;
         }
         count += len;
