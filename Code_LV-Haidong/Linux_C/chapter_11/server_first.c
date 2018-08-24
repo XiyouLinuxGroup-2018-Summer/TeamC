@@ -37,6 +37,7 @@ void chatting_news(qq information,int conn_fd);//获取好友之间的消息记�
 void group_news(qq information,int conn_fd);//获取群的聊天记录
 void group_list(qq information,int conn_fd);
 
+
 void chatting_news(qq information,int conn_fd)
 {
     int t ,y;
@@ -94,11 +95,16 @@ void group_news(qq information,int conn_fd)
       printf("%s\n",mysql_error(conn));
     }
     result = mysql_store_result(conn);
-   while(row = mysql_fetch_row(result))
+    while(row = mysql_fetch_row(result))
     {
         //返回结果集中的列数
         for(y = 0;y < mysql_num_fields(result);y++)   
         {
+            if(row[y] == NULL)
+            {
+                continue;
+            }
+            printf("row %s\n",row[y]);
             strcpy(group_server.record,row[y]);      
             group_server.flag = 20;
             send(conn_fd,&group_server,sizeof(qq),0);
@@ -138,8 +144,8 @@ void init_file(qq information,int conn_fd)
    strcpy(information2.number,information.number);
    strcpy(information2.to,information.to);
    //让自己发送的时候可以获得当前文件和想要发送的人
-   sprintf(query1,"select friends_%s from where friends_number = '%s';",information.number,information.to);
-  
+   sprintf(query1,"select friends_number from friends_%s where friends_number = '%s';",information.number,information.to);
+   printf("query1 %s \n",query1);
    int t = mysql_real_query(conn,query1,strlen(query1));//执行这条mysql 在我的好友表中查询这个人的内容
    if(t != 0)
    {  
@@ -424,16 +430,19 @@ void chatting_group(qq information,int conn_fd)
    qq information2;
    information2.flag = 15;
    strcpy(information2.record,information.record);
-
+   strcpy(information2.username,information.username);
+   strcpy(information2.number,information.number);
    result = mysql_store_result(conn);
    mysql_free_result(result);
    
    char query1[200];
    char query2[200];
    
-   sprintf(query1,"select group_number from group_%s_%s ; ",information.username,information.number);
-   sprintf(query2,"insert into group_%s (group_name,content) values('%s','%s');",information.username,information.record);
-   int t = mysql_real_query(conn,query1,sizeof(query1));
+   sprintf(query1,"select member_number from group_%s_%s ; ",information.username,information.qusetion);
+   sprintf(query2,"insert into group_%s (group_name,content) values('%s','%s');",information.qusetion,information.username,information.record);
+   int t = mysql_real_query(conn,query2,sizeof(query2));
+   printf("query2 %s\n",query2);
+   printf("record %s\n",information.record);
    if(t != 0)
    {
        my_err("select",__LINE__);
@@ -441,8 +450,10 @@ void chatting_group(qq information,int conn_fd)
    }
    result = mysql_store_result(conn);
    mysql_free_result(result);
+
    t = mysql_real_query(conn,query1,sizeof(query1));
    int y,fd;
+   printf("query1 %s \n",query1);
    if(t != 0)
    {
        my_err("select",__LINE__);
@@ -453,9 +464,13 @@ void chatting_group(qq information,int conn_fd)
    {
        for(y = 0;y < mysql_num_fields(result); y++)
       { 
-            fd = search(head,information.to);
+           if(strcmp(row[y],information.number) == 0)
+           {
+               continue;
+           }
+            fd = search(head,row[y]);
             if(fd == 0)
-                add_offline_news(information,information.number,information.to);
+                add_offline_news(information,information.number,row[y]);
             else
                 send(fd,&information2,sizeof(qq),0);     
       }
@@ -535,47 +550,63 @@ void group_inivt_mebmer(qq information, int conn_fd)
    MYSQL_RES  * result;
    result = mysql_store_result(conn);
    mysql_free_result(result);
-    
    char query1[200];
   // char mebmer[200];
-   int fd,t;
+   int fd,t,fd1;
    qq information2;
    information2.flag = 13;
-   sprintf(information2.record,"用户%s 邀请您加入群聊%s\n",information.number,information.username);
-   fd = search(head,information.to);
-   strcpy(information2.to,information.to);
-   strcpy(information2.number,information.number);
-   information.state = 1;
-   send(fd,&information2,sizeof(qq),0);
-  
-   recv(fd,&information2,sizeof(qq),0);
-   sprintf(query1,"insert into group_%s_%s (member_number,member_state)  values('%s','%s');",information.username,information.number,information.to,information.state);
-   t = mysql_real_query(conn,query1,strlen(query1));
-   if(t != 0)
+   printf("state %d\n",information.state);
+  if(information.state == 1 ) 
    {
-       printf("%s \n ",mysql_error(conn));
+    sprintf(information2.record,"用户%s 邀请您加入群聊%s\n",information.number,information.username);
+    fd = search(head,information.to);
+    strcpy(information2.to,information.to);
+    strcpy(information2.number,information.number);
+    strcpy(information2.username,information.username);
+    information2.state = 1;
+    send(fd,&information2,sizeof(qq),0);
    }
+ 
+  if(information.state == -9) 
+  {
+     printf("name %s \n",information.username); 
+    sprintf(query1,"insert into group_%s_%s (member_number,member_state)  values('%s',1);",information.username,information.number,information.to);
+    t = mysql_real_query(conn,query1,strlen(query1));
+    printf("query1 %s\n",query1);
+    if(t != 0)
+    {
+        printf("%s \n ",mysql_error(conn));
+    }
 
-   result = mysql_store_result(conn);
-   mysql_free_result(result);
-   memset(query1,0,sizeof(query1));
+    result = mysql_store_result(conn);
+    mysql_free_result(result);
+    memset(query1,0,sizeof(query1));
 
-   sprintf(query1,"insert into group_%s_%s (member_name) select users_name from users where users_number='%s' ;",information.username,information.number,information.to);
-   t = mysql_real_query(conn,query1,strlen(query1));
-   if(t != 0)
-   {
-       information2.state = -1;
-       printf("%s \n ",mysql_error(conn));
-   }
+    sprintf(query1,"update group_%s_%s set  member_name = ( select users_name from users where users_number='%s') where member_number='%s';",information.username,information.number,information.to,information.to);
+    t = mysql_real_query(conn,query1,strlen(query1));
+    if(t != 0)
+    {
+        information2.state = -1;
+        printf("%s \n ",mysql_error(conn));
+    }
 
-   result = mysql_store_result(conn);
-   mysql_free_result(result);
-   send(conn_fd,&information2,sizeof(qq),0);
+    result = mysql_store_result(conn);
+    mysql_free_result(result);
+    information2.state = -9;   
+  }
+  if(information.state == -10)
+  {
+      information2.state = -10;
+  }
+  fd1 = search(head,information.number);
+  send(fd1,&information2,sizeof(qq),0);
 }
 
 //设置管理员
 void group_set_guanli(qq  information,int conn_fd)
 {
+
+
     MYSQL_RES * result;
     result = mysql_store_result(conn);
     mysql_free_result(result);
@@ -583,7 +614,9 @@ void group_set_guanli(qq  information,int conn_fd)
     char query2[200];
     //查询这个表中有没有成员
     qq information2;
+
     information2.flag = 12 ;
+
     sprintf(query1,"select member_number from group_%s_%s where member_number ='%s';",information.username,information.number,information.to);
     int t;
     t = mysql_real_query(conn,query1,strlen(query1));
@@ -596,10 +629,11 @@ void group_set_guanli(qq  information,int conn_fd)
     result = mysql_store_result(conn);
     if(result == NULL)
     {
-        information.state = -4;
+        information2.state = -4;
     }
     else
     {
+        information2.state = 3;
         mysql_free_result(result);
         sprintf(query2,"update group_%s_%s  set member_state = 4 where member_number = '%s' ;",information.username,information.number,information.to);
         t = mysql_real_query(conn,query2,strlen(query2));  
@@ -628,14 +662,14 @@ void group_member_list(qq information,int conn_fd)
    information2.flag = 11;
    sprintf(query1,"select * from  group_%s_%s ;",information.username,information.number);
    printf("query1   %s \n",query1);
- 
+   information2.state = 1;
    int t,y=0;
    t = mysql_real_query(conn,query1,strlen(query1));
    printf("t %d \n",t);
    if(t !=0)
    {
       //在这里使用mysql_error 这个报错，最好不要执行strerror(errno)
-      printf(" %s\n",mysql_error(conn));
+      return ;
    }
    //获取函数的结果集
 
@@ -643,14 +677,13 @@ void group_member_list(qq information,int conn_fd)
 
    if(result == NULL)
    {
-       printf("此群不存在!\n");
-       return ;
+       send(conn_fd,&information2,sizeof(qq),0);
    }
    //获取行和列中的数据
    while(row = mysql_fetch_row(result))
-   {
+    {
         y = 0;
-        while(y != mysql_num_fields(result))
+        while( y != mysql_num_fields(result))
       { 
         if(y == 0)
         {
@@ -687,8 +720,9 @@ void group_member_list(qq information,int conn_fd)
             y++;
         }
       }
-         send(conn_fd,&information2,sizeof(qq),0);
-    }
+      send(conn_fd,&information2,sizeof(qq),0);
+   }
+    // mysql_free_result(result);
 }
 
 
