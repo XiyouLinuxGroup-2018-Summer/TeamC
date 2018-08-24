@@ -171,6 +171,24 @@ int ShiFriend(int user_id, int friend_id)
     return 1;
 }
 
+int UnShiFriend(int user_id, int friend_id)
+{
+    int ret;
+    char sql[256];
+    sprintf(sql, "update `%s`.`%d` set Shield = 0 where id = %d AND status = 0;", Data_UserInfo, user_id, friend_id);
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
+#ifdef DEBUG
+    printf("解除屏蔽好友\n");
+    printf("sql: %s\n", sql);
+#endif
+    if (ret)
+        sql_err(__LINE__, _mysql);
+    MYSQL_RES * _res = mysql_store_result(_mysql);
+    mysql_free_result(_res);
+
+    return 1;
+}
+
 int _DelFriend(int user_id, int friend_id)
 {
     int ret;
@@ -200,6 +218,7 @@ int UserRelaList(int user_id, char reststr[FRI_NUM][50], int flag)
     int ret, count = 0, k;
     char sql[256];
     k = flag ? STA_GRP_NOR : STA_FRI_NOR;
+    printf("temp at %p\n", reststr);
     sprintf(sql, "select id, name, Shield from `%s`.`%d` where status = %d order by id;", Data_UserInfo, user_id, k);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
 #ifdef DEBUG
@@ -291,7 +310,7 @@ int CreateGroup(int owner_id, char * name, char * something)
     mysql_free_result(_res);
 
     // 更新own_id的关系
-    sprintf(sql, "insert into `%s`.`%d` values(%d, '%s', %d, %d);",  Data_UserInfo, owner_id, groupid, STA_GRP_NOR, STA_BE_NORM);
+    sprintf(sql, "insert into `%s`.`%d` values(%d, '%s', %d, %d);",  Data_UserInfo, owner_id, groupid, name, STA_GRP_NOR, STA_BE_NORM);
 #ifdef DEBUG
     printf("创建群聊-更新群主的群组列表\n");
     printf("sql: %s\n", sql);
@@ -340,7 +359,7 @@ int AddOneToGrp(int user_id, char * user_name, int grp_id, char * grp_name)
     char sql[256];
     MYSQL_RES * _res;
     MYSQL_ROW _row;
-    sprintf(sql, "insert into `%s`.`%s` values(%d, '%s', %d);", Data_GroupInfo, grp_id, user_id, user_name, GRP_STA_NOR);
+    sprintf(sql, "insert into `%s`.`%d` values(%d, '%s', %d);", Data_GroupInfo, grp_id, user_id, user_name, GRP_STA_NOR);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
 #ifdef DEBUG
     printf("添加群成员-群成员信息更改\n");
@@ -351,7 +370,7 @@ int AddOneToGrp(int user_id, char * user_name, int grp_id, char * grp_name)
     _res = mysql_store_result(_mysql);
     mysql_free_result(_res);
     
-    sprintf(sql, "insert into `%s`.`%s` values(%d, '%s', %d, %d);", Data_UserInfo, user_id, grp_id, grp_name, STA_GRP_NOR, STA_BE_NORM);
+    sprintf(sql, "insert into `%s`.`%d` values(%d, '%s', %d, %d);", Data_UserInfo, user_id, grp_id, grp_name, STA_GRP_NOR, STA_BE_NORM);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
 #ifdef DEBUG
     printf("添加群成员-群成员群关系更新\n");
@@ -371,7 +390,7 @@ int GrpMemberList(int grp_id, int mem_id[MEM_NUM], char mem_name[MEM_NUM][USER_N
     char sql[256];
     MYSQL_RES * _res;
     MYSQL_ROW _row;
-    sprintf(sql, "select id, name, status from `%s`.`%s`;", Data_GroupInfo, grp_id);
+    sprintf(sql, "select id, name, status from `%s`.`%d`;", Data_GroupInfo, grp_id);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
 #ifdef DEBUG
     printf("获取群成员列表\n");

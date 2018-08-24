@@ -22,7 +22,7 @@
 
 // 与屏幕光标有关的宏定义 ----------------------------------------------------
 // #define S_CLEAR()           printf("\ec")              // 清屏
-#define S_CLEAR()           printf("")              // 清屏
+#define S_CLEAR()           printf("\033[2J")
 #define S_CLOSE()           printf("\e[0m")            // 关闭所有属性
 #define S_BLOD()            printf("\e[1m")            // 强调、加粗、高亮
 #define S_FLCK()            printf("\e[5m")            // 闪烁

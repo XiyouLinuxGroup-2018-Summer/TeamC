@@ -41,23 +41,22 @@ typedef struct message                  // 消息结构
 // };
 
 int MsgNum = 0;
-int ChatWithWho = 0;                                    // 标记和谁在聊天 -　默认设置为0, 值为用户id
-int CmdExecSta;                                     // 操作执行情况，0-默认，1 -> 成功, -1 -> 失败
+int ChatWithWho = 0;                                // 标记和谁在聊天 -　默认设置为0, 值为用户id
+int CmdExecSta = -1;                                     // 操作执行情况，0-默认，1 -> 成功, -1 -> 失败
 int user_id;                                        // 用户id                                     // 操作执行情况，0-默认，1 -> 成功, -1 -> 失败
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;      // 新建一个锁，防止读写冲突
 int sock_fd;   
 
-vector<sFriend>myFriend;
-vector<sGroup>myGroup;
+// vector<sFriend>myFriend;
+// vector<sGroup>myGroup;
 // priority_queue<vector<Message>, vector<Message>, cmp>MessageBox;    
 vector<Message>MessageBox;   
 
 void* PrecvMSG(void * arg);                             // 线程: 接受消息
 void  vMsgBox(void);                                    // 消息盒子
 void* InitiaClient(void * arg);                         // 初始化客户端
-int  vFriendList(void);
-void GetFriList(int sockfd);
-void GetGroupList(int sockfd);
+void GetFriList();
+void GetGroupList();
 void vMsgBox(int sockfd);
 void vChatWithOne(int targetid);
 void fun_exit(int sig)
@@ -180,17 +179,20 @@ int main(void)
                 MsgNum = 0;
                 break;
             case 2: // 查看好友列表
+                int targetid;
                 while(1)
                 {
-                    int kase = vFriendList();
-                    if (kase == -1)
+                    GetFriList();
+                    while (!CmdExecSta);
+                    if (CmdExecSta == -1)
                         break;
+                    printf("请输入你要操作的好友id:\n");
+                    scanf("%d", &targetid);
                     ret = vFunFriendMenu();
                     switch(ret)
                     {
                         case 1:
                         {
-                            ChatWithWho = myFriend[kase].id;
                             vChatWithOne(ChatWithWho);
                             break;
                         }
@@ -213,7 +215,7 @@ int main(void)
                         {
                             Datapack.cmdflag = Flag_Cmd_DelFri;
                             Datapack.source_id = user_id;
-                            Datapack.target_id = myFriend[kase].id;
+                            // Datapack.target_id = myFriend[kase].id;
                             ret = SendMSG(sock_fd, &Datapack, PACK_SIZE, 0);
                             break;
                         }
@@ -355,17 +357,14 @@ void* PrecvMSG(void * arg)
             case Flag_Cmd_LkFriList:
             {
                 pthread_mutex_lock(&mutex);
-                ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
-                if (ret < 0)
-                    my_err(__FILE__, "SendMSG", __LINE__, 0);
-                if (ret == 0)
-                {
-                    fprintf(stderr, "服务器未响应!!\n");
-                    my_err(__FILE__, "RecvMSG", __LINE__, 0);
-                }
-                printf("%d 接收第一次包结束\n", __LINE__);
                 num = recvpack.statusflag;
-                printf("%d num = %d\n", __LINE__, num);
+                if (num == 0)
+                {
+                    printf("好友列表为空\n");
+                    CmdExecSta = -1;
+                    // pthread_mutex_unlock(&mutex);
+                    break;
+                }
                 for (int i = 0; i < num; i++)
                 {
                     ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
@@ -376,7 +375,8 @@ void* PrecvMSG(void * arg)
                         fprintf(stderr, "服务器未响应!!\n");
                         my_err(__FILE__, "RecvMSG", __LINE__, 0);
                     }
-                    printf("%d 接收第%d次包结束\n", __LINE__, i + 1);
+                    // printf("%d 接收第%d次包结束\n", __LINE__, i + 1);
+                    // printf("> %s\n", recvpack.strmsg);
                     char * str1, * str2, *str3;
                     char tempid[12], tempname[USER_NAME_MAX + 1], tempshi[5];
                     str1 = strstr(recvpack.strmsg, _END_);
@@ -389,12 +389,7 @@ void* PrecvMSG(void * arg)
                     strncpy(tempshi, str2 + strlen(_END_), str3 - str2 - strlen(_END_));
                     tempshi[str3 - str2 - strlen(_END_)] = '\0';
 
-                    myFriend[i].id = atoi(tempid);
-                    strcpy(myFriend[i].name, tempname);
-                    myFriend[i].shield = atoi(tempshi);
-                    printf("%d\n", myFriend[i].id);
-                    printf("%s\n", myFriend[i].name);
-                    printf("%d\n", myFriend[i].shield);
+                    printf("> [id] %s [name] %s [status] %s\n", tempid, tempname, tempshi);
                 }
                 CmdExecSta = 1;
                 pthread_mutex_unlock(&mutex);
@@ -402,6 +397,7 @@ void* PrecvMSG(void * arg)
             }
             case Flag_Cmd_LkGrpList:
             {
+                pthread_mutex_lock(&mutex);
                 ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
                 if (ret < 0)
                     my_err(__FILE__, "SendMSG", __LINE__, 0);
@@ -433,10 +429,12 @@ void* PrecvMSG(void * arg)
                     strncpy(tempshi, str2 + strlen(_END_), str3 - str2 - strlen(_END_));
                     tempshi[str3 - str2 - strlen(_END_)] = '\0';
 
-                    myGroup[i].id = atoi(tempid);
-                    strcpy(myGroup[i].name, tempname);
-                    myGroup[i].shield = atoi(tempshi);
+                    sGroup temp;
+                    temp.id = atoi(tempid);
+                    strcpy(temp.name, tempname);
+                    temp.shield = atoi(tempshi);
                 }
+                pthread_mutex_unlock(&mutex);
                 break;
             }
         }
@@ -445,14 +443,11 @@ void* PrecvMSG(void * arg)
 
 void* InitiaClient(void * socketfd)     
 {
-    // 初始化好友列表，群组列表，离线消息
     int num, ret;
     int sockfd = *(int*)socketfd;
     Package recvpack, sendpack;
 
     // 清空数据，防止注销登录另一个账号导致的数据混乱
-    myFriend.clear();
-    myGroup.clear();
     MessageBox.clear();
     // while (!MessageBox.empty())
     //     MessageBox.pop();
@@ -594,8 +589,8 @@ void GetGroupList(int sockfd)
 {
     int num, ret;
     Package recvpack, sendpack;
-    myGroup.clear();
     // 发送请求，获取群组列表
+    printf("                  - GroupList -                   \n\n");   
     memset(&sendpack, 0, sizeof(sendpack));
     sendpack.source_id = user_id;
     sendpack.cmdflag = Flag_Cmd_LkGrpList;
@@ -604,104 +599,20 @@ void GetGroupList(int sockfd)
         my_err(__FILE__, "SendMSG", __LINE__, 0);
 }
 
-void GetFriList(int sockfd)
+void GetFriList()
 {
     int num, ret;
     Package recvpack, sendpack;
-    myFriend.clear();
     // 发送请求，获取好友列表
+    printf("                  - FriendList -                   \n\n");    
     memset(&sendpack, 0, sizeof(sendpack));
     sendpack.source_id = user_id;
     // printf("user_id = %d\n", user_id);
     sendpack.cmdflag = Flag_Cmd_LkFriList;
-    ret = SendMSG(sockfd, &sendpack, PACK_SIZE, 0);
+    ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
     if (ret < 0)
         my_err(__FILE__, "SendMSG", __LINE__, 0);
-}
-
-int vFriendList()
-{
-    int num, cmd, ret;
-    S_CLEAR(); 
-    // S_BLOD(); S_COLOR(40, 33);
-    printf("                  - FriendList -                   \n\n");    
-    // S_CLOSE()；
-    CmdExecSta = 0;
-    GetFriList(sock_fd);
-    while (!CmdExecSta)
-        ;
-    CmdExecSta = 0;
-
-    num = myFriend.size();
-    if (num == 0)
-    {
-        printf("好友列表为空\n");
-        printf("按任意键退出....\n");
-        getchar();
-        return -1;
-    }
-        
-    while (1)
-    {
-        for (int i = 0; i < num; i++)
-        {
-            printf("[%d] %s(%d)\t", i + 1, myFriend[i].name, myFriend[i].id);
-            if (myFriend[i].shield)
-            {
-                S_COLOR(S_DEFAULT_BACK, 31);
-                printf("×");
-                S_CLOSE();
-            }
-            printf("\n");
-        }
-        printf("\n\n请选择要操作的好友[序号]:\t");
-        scanf("%d", &cmd);
-        if (cmd <= 0 || cmd > num)
-            continue;
-        else    
-            return cmd;  
-    }
-}
-
-int vGroupList()
-{
-    int num, cmd, ret;
-    S_CLEAR(); 
-    // S_BLOD(); S_COLOR(40, 33);
-    printf("                  - GroupList -                   \n\n");    
-    // S_CLOSE();
-    GetGroupList(sock_fd);
-    sleep(1);
-
-    num = myGroup.size();
-    if (num == 0)
-    {
-        printf("群组列表为空\n");
-        printf("按任意键退出....\n");
-        getchar();
-        return -1;
-    }
-
-    while (1)
-    {
-        for (int i = 0; i < num; i++)
-        {
-            printf("[%d] %s(%d)\t", i + 1, myGroup[i].name, myGroup[i].id);
-            if (myGroup[i].shield)
-            {
-                S_COLOR(S_DEFAULT_BACK, 31);
-                printf("×");
-                S_CLOSE();
-            }
-            printf("\n");
-        }
-        printf("\n\n请选择要操作的群[序号]:\t");
-        scanf("%d", &cmd);
-        if (cmd <= 0 || cmd > num)
-            continue;
-        else    
-            return cmd - 1;  
-    }
+    // printf("num = %d\n", (int)myFriend.size());
 }
 
 void vChatWithOne(int targetid)

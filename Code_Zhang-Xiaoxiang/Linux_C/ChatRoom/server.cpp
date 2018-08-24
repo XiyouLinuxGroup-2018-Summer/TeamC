@@ -147,7 +147,7 @@ void* pthreadFun(void * arg)
             IdWithSock.erase(temp_userid);
             fprintf(stdout, "[%d] exit\n", temp_userid);
         }
-        fprintf(stdout, "[status] 客户端退出（软件中断）[socket] %s\n", confd);
+        fprintf(stdout, "[status] 客户端退出（软件中断）[socket] %d\n", confd);
         close(confd);
         pthread_exit(0);
     }
@@ -171,7 +171,7 @@ void* pthreadFun(void * arg)
                 IdWithSock.erase(temp_userid);
                 printf("[user](id = %d) exit\n", temp_userid);
             }
-            fprintf(stdout, "[status] 客户端正常退出 [socket] %s\n\n", confd);
+            fprintf(stdout, "[status] 客户端正常退出 [socket] %d\n\n", confd);
             pthread_exit(0);
             break;
         }
@@ -380,10 +380,14 @@ void* pthreadFun(void * arg)
             fprintf(stdout, "发送第一次包成功\n");
             for (int i = 0; i < count; i++)
             {
-                strcpy(sendpack.strmsg, temp[count]);
+                printf("temp[count] = %s", temp[i]);
+                sendpack.cmdflag = Flag_Cmd_LkFriList;
+                sendpack.source_id = sourceid;
+                strcpy(sendpack.strmsg, temp[i]);
                 ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
                 if (ret < 0)
                     my_err(__FILE__, "SendMSG", __LINE__, 1);
+                printf("==> 发送包结束\n");
             }
             fprintf(stdout, "发送结束\n");
             break;
@@ -403,7 +407,8 @@ void* pthreadFun(void * arg)
 
             for (int i = 0; i < count; i++)
             {
-                strcpy(sendpack.strmsg, temp[count]);
+                printf("temp[count] = %s", temp[i]);
+                strcpy(sendpack.strmsg, temp[i]);
                 ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
                 if (ret < 0)
                     my_err(__FILE__, "SendMSG", __LINE__, 1);
@@ -426,6 +431,14 @@ void* pthreadFun(void * arg)
             ShiFriend(sourceid, tar_id);
             break;
         }
+
+        case Flag_Cmd_UnShiSome:
+        {
+            int tar_id = recvpack.target_id;
+            UnShiFriend(sourceid, tar_id);
+            break;
+        }
+
         case Flag_Cmd_CreateGrp:
         {
             // name + end + something + end
@@ -482,6 +495,7 @@ void* pthreadFun(void * arg)
         {
             char offmsg[OffMsg_NUM][256];
             memset(offmsg, 0, sizeof(offmsg));
+            // 查询sourceid的离线记录
             int num = TransOffMsg(sourceid, offmsg);
             sendpack.statusflag = num;
             ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
@@ -490,6 +504,7 @@ void* pthreadFun(void * arg)
             for (int i = 0; i < num; i++)
             {
                 strcpy(sendpack.strmsg, offmsg[i]);
+                printf("%s", sendpack.strmsg);
                 ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
                 if (ret < 0)
                     my_err(__FILE__, "SendMSG", __LINE__, 0);

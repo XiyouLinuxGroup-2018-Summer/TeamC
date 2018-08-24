@@ -86,6 +86,8 @@ int _AddFriend(int user_id, int friend_id, char * friend_name);
 // return: 成功返回1，失败返回0
 int ShiFriend(int user_id, int friend_id);
 
+int UnShiFriend(int user_id, int friend_id);
+
 // DelFriend() 的子函数，只操作一方
 int _DelFriend(int user_id, int friend_id);
 

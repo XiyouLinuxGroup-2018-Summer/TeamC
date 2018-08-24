@@ -53,6 +53,8 @@ typedef struct package
 //      else 
 //          do nothing */
 
+#define Flag_Cmd_UnShiSome 4        // 解除屏蔽好友
+
 #define Flag_Cmd_AddFri     5       // 添加好友 strmsg format: [空]
 // s->c: return success or failed
 //      then do nothing
