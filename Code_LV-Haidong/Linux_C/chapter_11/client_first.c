@@ -5,6 +5,7 @@
 #include "group_menu.h"
 #include <mysql/mysql.h>
 #include <unistd.h>
+#include <unistd.h>
 #include <signal.h>
 #include "my_send_recv.h"
 
@@ -29,7 +30,7 @@ void inivt_merber(qq information, int conn_fd);    //邀请成员进群
 void chatting_group(qq information, int conn_fd);  //一对多的聊天
 void kick_out_members(qq information, int conn_fd);
 void init_file(qq information, int conn_fd); //找到当前的好友
-void sendfile(qq information2, int conn_fd); //发送文件
+void send_file(qq information2, int conn_fd); //发送文件
 void recvfile(qq information,int conn_fd);//接受好友的文件
 int my_news_box(qq information,int conn_fd);//我的消息盒子
 void get_friend_news(qq information);
@@ -70,8 +71,12 @@ void view_news(qq information,int conn_fd)
 void group_news_list(qq information,int conn_fd)
 {
      information.flag = 20;
-     printf("请输入你想要查询的群消息\n");
+     printf("请输入你想要查询的群消息(输入quit取消查询)\n");
      scanf("%s",information.to);
+     if(strcmp(information.to,"quit") == 0)
+     {
+         return ;
+     }
      send(conn_fd,&information,sizeof(qq),0);
 }
 
@@ -114,33 +119,33 @@ void get_file_one( qq information, int conn_fd )
      if(strcpy(information.to,to) == 0)    //当前有没有处于聊天之中
     {
 
-        printf("\t 好友%d 给你发来文件%s\n",information.to,information.record);
+        printf("\t 好友%s 给你发来文件%s\n",information.to,information.record);
     }
     else
     {
-            printf("\t好友%d发来一个文件,请到消息盒子处理\n",information.to );
-
+            printf("\t好友%s发来一个文件,请到消息盒子处理\n",information.to );
+            add_news_box(information);
         //不是当前聊天的群就放进消息盒子
     }
 }
 
 
-void sendfile(qq information2, int conn_fd)
+void send_file(qq information2, int conn_fd)
 {
     information2.flag = 17;
-    
+    printf("flag %d\n",information2.flag);
     char name[256];
     int file_fd;
     int j,i;
-
-    printf("请输入你想要发送文件的绝对路径");
+    printf("请输入你想要发送文件的绝对路径\n");
     scanf("%s",name);
+    printf("name = %s\n", name);
     file_fd = open(name,O_RDONLY);
-    
+    printf("file_fd %d\n",file_fd);
     if(file_fd < 0 )
     {
-        printf("此文件不存在;");
-        return ;
+        printf("此文件不存在;\n");
+    
     }
     ///解析出文件名
     for(i=0,j=0;j<strlen(name);i++)
@@ -178,7 +183,7 @@ void sendfile(qq information2, int conn_fd)
     printf("文件传输结束 < < <  <\n");
      
     send(my_connfd,&information2,sizeof(qq),0);
-    return ; 
+    // return ; 
 }
 
 int getch1() //已经封装好的getch函数
@@ -436,7 +441,7 @@ int my_recv(void)
                 }
                 if (information2.state == 4)
                 {
-                    printf("\033[90m 群员                     \t\033[0m");
+                    printf("\033[90m 管理员                    \t\033[0m");
                     printf("\n");
                 }
                 break;
@@ -445,9 +450,9 @@ int my_recv(void)
             {
                 if (information2.state == -4)
                 {
-                    printf("在这个群里没有此人!\n");
+                    printf("设置失败！\n");
                 }
-                else
+                if(information2.state == 3)
                 {
                     printf("设置成功，此人已经成为管理员\n");
                 }
@@ -486,6 +491,7 @@ int my_recv(void)
                 if(information2.state == 1)
                 {
                     printf("删除成功\n");
+                    break;
                 }
                 if (information2.state <= 2 && information2.state >= 0)
                 {
@@ -501,7 +507,8 @@ int my_recv(void)
                 get_chatting_group(information2);
                 break;
             }
-            case 16:
+        
+             case 16:
             {
                 if (information2.state == -5)
                 {
@@ -509,12 +516,12 @@ int my_recv(void)
                 }
                 else
                 {
-                    printf("传送开始\n");
-                    sendfile(information2, my_connfd);
+                    send_file(information2,my_connfd);
                 }
+                
                 break;
             }
-            case 17:
+             case 17:  
             {   
                 if(information2.state == -6)
                 {
@@ -555,6 +562,7 @@ int my_news_box(qq information2,int conn_fd)
 {
     char ch ;
     char x;
+    char z;
     qq * temporarily;
     qq * q1  =  head ;
     qq * temp = head->next;
@@ -579,14 +587,14 @@ int my_news_box(qq information2,int conn_fd)
                    printf("%s(y/n)\n",temp->record);
                 //    getchar();
                    scanf("%c",&x);
-                   getchar();
+                    getchar();
                    if(x == 'y')
                    {
                      information2.state = -8;
                    }
                    else
                    {
-                      information2.state = -7;    
+                       information2.state = -7;
                    }
                    strcpy(information2.number,temp->number);
                    strcpy(information2.to,temp->to);
@@ -598,17 +606,21 @@ int my_news_box(qq information2,int conn_fd)
                    head =  temporarily; 
                    break;
             case 13:
-                   printf("%s(y/n)\n",temp->record);   
-                   getchar();
-                   scanf("%c",&x);
-                   if(x == 'y')
+                  printf("%s(y/n)\n",temp->record);  
+                  scanf("%c",&z);
+                //    getchar();
+                   printf("y1 %c\n",z);
+                   if(z == 'y')
                    {
                      information2.state = -9;
                    }
-                   else
+                   if(z == 'n')
                    {
                       information2.state = -10;    
                    }
+                   printf("state %d \n",information2.state);
+                   getchar();  
+                   strcpy(information2.username,temp->username);
                    strcpy(information2.number,temp->number);
                    strcpy(information2.to,temp->to);
                    information2.flag = temp ->flag;
@@ -626,7 +638,7 @@ int my_news_box(qq information2,int conn_fd)
                    head =  temporarily; 
                    break;
             case 17:
-                   printf("用户%s给您发了一个文件\n",temp->number);
+                   printf("用户%s给您发了一个文件\n",temp->to);
                    temporarily = temp;
                    temp = temp->next;
                    free(head);
@@ -802,12 +814,6 @@ void member_list(qq information, int conn_fd) //查看群成员
 void set_guanli(qq information, int conn_fd) //设置管理员
 {
 
-    if (information.state != 3)
-    {
-        printf("你不是群主，没有权力设置!\n");
-        return; //返回上层
-    }
-
     printf("请输入你想要设置为管理员的成员账号\n");
     scanf("%s", information.to); //
 
@@ -821,7 +827,7 @@ void inivt_merber(qq information, int conn_fd) //邀请成员进群
     information.flag = 13; //设置flag方便服务器响应
 
     char name[5];
-
+ 
     printf("请输入你想要邀请的人进入此群聊\n");
     scanf("%s", information.to);
     send(conn_fd, &information, sizeof(qq), 0);
@@ -846,19 +852,19 @@ void kick_out_members(qq information, int conn_fd) //踢人
 void chatting_group(qq information, int conn_fd) //一对多的聊天
 {
     information.flag = 15; //标志位
-    printf("%s(quit退出):   \n", information.number);
+    printf("用户:%s(quit退出):   \n", information.number);
     scanf("%s", information.record);
-    while (strcmp(information.record, "quit") == 0)
+    while (strcmp(information.record, "quit") != 0)
     {
         send(conn_fd, &information, sizeof(qq), 0);
-        printf("%s(quit退出):   \n", information.number);
+        printf("用户:%s(quit退出):   \n", information.number);
         scanf("%s", information.record);
     }
 }
 
 void get_chatting_group(qq information)
 {
-    if(strcpy(group_num,information.username) == 0)
+    if(strcmp(group_num,information.username) == 0)
     {
        printf("群%s : %s\n",information.username,information.record);
     }   
@@ -878,15 +884,18 @@ void my_enter_group(qq information, int conn_fd)
     information.flag = 9;
     printf("请选择你想要进入的群聊\n");
     scanf("%s", information.username);
+    scanf("%s",information.qusetion);
     strcpy(group_num,information.username);
-
-    enter_menu();
-    scanf("%d", &num);
+    printf(" %s \n",group_num);
     do
-    {    switch (num)
+    {  
+        enter_menu();
+        scanf("%d", &num);
+         switch (num)
         {
             case 0:
-                break;
+                  my_group(information,conn_fd);
+                  break;
             case 1:
                 chatting_group(information, conn_fd);
                 break;
@@ -906,6 +915,7 @@ void my_enter_group(qq information, int conn_fd)
                 group_news_list(information,conn_fd);
                 break;
         }
+      
     }while(num>=1 && num<=6);
 }
 void my_delete_group(qq information, int conn_fd)
