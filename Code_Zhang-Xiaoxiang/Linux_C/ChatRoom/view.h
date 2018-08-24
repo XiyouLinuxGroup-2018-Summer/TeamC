@@ -39,16 +39,10 @@ int vFunFriendMenu(void);
 // int vFunMemMenu(void);
 
 // // fun: 对群组操作
-// int vFunGroupMenu(void);
+int vFunGroupMenu(int status);
 
 // // fun: SendFile
 // int vSendFile(void);
-
-// // fun: 查看好友列表
-// int vLookFriendList(void);
-
-// // fun: 查看群组列表
-// int vLookGroupList(void);
 
 // // fun: 添加好友
 // int vAddFriend(void);
@@ -59,17 +53,5 @@ int vFunFriendMenu(void);
 // // fun: 创建群聊
 // int vCreateGroup(void);
 
-// // fun: 消息盒子
-// // note:
-// //  - 系统消息
-// //      1. 是否接受发来的离线文件
-// //      2. 是否同意好友发来的邀请加群请求
-// //      3. 是否同意加好友的请求
-// //      4. if 群主 or 管理员
-// //              是否接受有人的加群请求
-// //      5. [群主]/[管理员]是否同意加群请求
-// //  - 普通群聊、私聊信息
-// //      询问查看哪一条信息， 打开聊天界面
-// void vMsgBox(void);
 
 #endif

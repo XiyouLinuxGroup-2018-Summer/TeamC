@@ -15,10 +15,8 @@ map<int, int>SockWithId;            // socket  --> user_id
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;  // 初始化锁
 
 MYSQL * _mysql = NULL;
-MYSQL_ROW _row;
-MYSQL_RES * _res;
-
-
+int epfd, nfds;
+struct epoll_event ev, events[EVENTS_MAX];
 void Initia(void);                  // 初始化
 void EndEvents(void);               // 关闭连接，套接字等等
 void* pthreadFun(void * arg);       // 线程，处理请求
@@ -29,8 +27,6 @@ int main(void)
     Initia();  
     int ret, op;
     int conn_fd;                    // 套接字
-    int epfd, nfds;
-    struct epoll_event ev, events[EVENTS_MAX];
     struct sockaddr_in ser_addr, cli_addr;
     pthread_t pth;                  // 线程id
     socklen_t cli_len = sizeof(struct sockaddr_in);
@@ -84,7 +80,7 @@ int main(void)
                 ev.events = EPOLLIN;
                 epoll_ctl(epfd, EPOLL_CTL_ADD, conn_fd, &ev);
             }
-            else if (events[i].events & EPOLLIN)    // 收到package, 处理
+            if (events[i].events & EPOLLIN)    // 收到package, 处理
             {
                 conn_fd = events[i].data.fd;
                 if (pthread_create(&pth, NULL, pthreadFun, (void*)&conn_fd) < 0)
@@ -139,6 +135,7 @@ void* pthreadFun(void * arg)
         my_err(__FILE__, "RecvMSG", __LINE__, 1);
     else if (ret == 0)                          // 客户度异常退出　[软件中断]
     {
+        epoll_ctl(epfd, EPOLL_CTL_DEL, confd, &ev);
         printf("=======================\n");
         int temp_userid;
         it = SockWithId.find(confd);
@@ -365,21 +362,22 @@ void* pthreadFun(void * arg)
         }
         case Flag_Cmd_LkFriList:
         {
+            fprintf(stdout, "接收到查询用户关系请求\n");
             int count = 0;
             char temp[FRI_NUM][50];
             memset(temp, 0, sizeof(temp));
-            UserRelaList(sourceid, temp, 0);
-            if (temp == NULL)
-                count = 0;
-            else
-                while (temp[count] != 0)
-                    count++;
+            printf("source id = %d\n", sourceid);
+            count = UserRelaList(sourceid, temp, 0);
+
+            printf("count = %d\n", count);
             sendpack.statusflag = count;        // 第一次传输数据包的数目
+            fprintf(stdout, "将会发送 %d 个包\n", count + 1);
             memset(sendpack.strmsg, 0, sizeof(sendpack.strmsg));
             ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
             if (ret < 0)
                 my_err(__FILE__, "SendMSG", __LINE__, 1);
 
+            fprintf(stdout, "发送第一次包成功\n");
             for (int i = 0; i < count; i++)
             {
                 strcpy(sendpack.strmsg, temp[count]);
@@ -387,6 +385,7 @@ void* pthreadFun(void * arg)
                 if (ret < 0)
                     my_err(__FILE__, "SendMSG", __LINE__, 1);
             }
+            fprintf(stdout, "发送结束\n");
             break;
         }
         case Flag_Cmd_LkGrpList:
@@ -394,9 +393,8 @@ void* pthreadFun(void * arg)
             int count = 0;
             char temp[FRI_NUM][50];
             memset(temp, 0, sizeof(temp));
-            UserRelaList(sourceid, temp, 1);
-            while (temp[count] != 0)
-                count++;
+            count = UserRelaList(sourceid, temp, 1);
+
             sendpack.statusflag = count;        // 第一次传输数据包的数目
             memset(sendpack.strmsg, 0, sizeof(sendpack.strmsg));
             ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
@@ -537,13 +535,10 @@ void* pthreadFun(void * arg)
             char username[USER_NAME_MAX + 1], tarname[USER_NAME_MAX + 1];
             int tar_id = recvpack.target_id;
 
-            str1 = strstr(recvpack.strmsg, _END_);
-            str2 = strstr(str1 + strlen(_END_), _END_);
-
-            strncpy(username, recvpack.strmsg, str1 - recvpack.strmsg);
-            username[str1 - recvpack.strmsg] = '\0';
-            strncpy(tarname, str1 + strlen(_END_), str2 - str1 - strlen(_END_));
-            tarname[str2 - str1 - strlen(_END_)] = '\0';
+            SearchAccId(sourceid, username);
+            SearchAccId(tar_id, tarname);
+            printf("username = %s\n", username);
+            printf("tarname = %s\n", tarname);
 
             ret = AddFriend(sourceid, tar_id, username, tarname);
 
@@ -552,6 +547,7 @@ void* pthreadFun(void * arg)
                 get_time(NULL);
                 fprintf(stderr, "同意添加好友失败");
             }
+            printf("添加好友成功\n");
 
             break;
         }

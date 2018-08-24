@@ -59,7 +59,7 @@ int  vFriendList(void);
 void GetFriList(int sockfd);
 void GetGroupList(int sockfd);
 void vMsgBox(int sockfd);
-void vChatWithOne(int tarid);
+void vChatWithOne(int targetid);
 void fun_exit(int sig)
 {
     close(sock_fd);
@@ -196,22 +196,30 @@ int main(void)
                         }
                         case 2:
                         {
+                            printf("功能尚未实现\n");
                             break;
                         }
                         case 3:
                         {
+                            printf("功能尚未实现\n");
                             break;
                         }
                         case 4:
                         {
+                            printf("功能尚未实现\n");
                             break;
                         }
                         case 5:
                         {
+                            Datapack.cmdflag = Flag_Cmd_DelFri;
+                            Datapack.source_id = user_id;
+                            Datapack.target_id = myFriend[kase].id;
+                            ret = SendMSG(sock_fd, &Datapack, PACK_SIZE, 0);
                             break;
                         }
                         case 6:
                         {
+                            printf("功能尚未实现\n");
                             break;
                         }
                         case 7:
@@ -222,12 +230,56 @@ int main(void)
                 }
                 break;
             case 3: // 查看群组列表
+                // while(1)
+                // {
+                //     // int kase = vGroupList();
+                //     // if (kase == -1)
+                //     //     break;
+                //     // ret = vFunGroupMenu(myFriend[kase].shield);
+                //     switch(ret)
+                //     {
+                //         case 1:
+                //         {
+                //             // ChatWithWho = myFriend[kase].id;
+                //             // vChatWithOne(ChatWithWho);
+                //             break;
+                //         }
+                //         case 2:
+                //         {
+                //             printf("功能尚未实现\n");
+                //             break;
+                //         }
+                //         case 3:
+                //         {
+                //             printf("功能尚未实现\n");
+                //             break;
+                //         }
+                //         case 4:
+                //         {
+                //             printf("功能尚未实现\n");
+                //             break;
+                //         }
+                //         case 5:
+                //         {
+                //             break;
+                //         }
+                //         case 6:
+                //         {
+                //             printf("功能尚未实现\n");
+                //             break;
+                //         }
+                //         case 7:
+                //         {
+                //             break;
+                //         }
+                //     }
+                // }
                 break;
             case 4: // 添加好友
             {
-                S_CLEAR(); S_BLOD(); S_COLOR(40, 33);
+                // S_CLEAR(); S_BLOD(); S_COLOR(40, 33);
                 printf("                  - AddFriend -                   \n\n");    
-                S_CLOSE();
+                // S_CLOSE();
                 printf("\n输入你要添加的好友id: \n");
                 scanf("%d", &ret);
 
@@ -262,7 +314,7 @@ int main(void)
 
 void* PrecvMSG(void * arg)
 {
-    int ret, kase, kind, source;
+    int ret, kase, kind, source, num;
     int sockfd = *(int*)arg;
     Package recvpack;
     while (1)
@@ -291,12 +343,99 @@ void* PrecvMSG(void * arg)
                 else                                    // 放入消息盒子
                 {
                     Message m;
-                    m.kind = Flag_Cmd_Msg;
+                    m.kind = recvpack.statusflag;
                     strcpy(m.msg, recvpack.strmsg);
                     get_time(m.msgtime);
                     m.sourceid = source;
                     m.targetid = recvpack.target_id;
                     MessageBox.push_back(m);
+                }
+                break;
+            }
+            case Flag_Cmd_LkFriList:
+            {
+                pthread_mutex_lock(&mutex);
+                ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
+                if (ret < 0)
+                    my_err(__FILE__, "SendMSG", __LINE__, 0);
+                if (ret == 0)
+                {
+                    fprintf(stderr, "服务器未响应!!\n");
+                    my_err(__FILE__, "RecvMSG", __LINE__, 0);
+                }
+                printf("%d 接收第一次包结束\n", __LINE__);
+                num = recvpack.statusflag;
+                printf("%d num = %d\n", __LINE__, num);
+                for (int i = 0; i < num; i++)
+                {
+                    ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
+                    if (ret < 0)
+                        my_err(__FILE__, "SendMSG", __LINE__, 0);
+                    if (ret == 0)
+                    {
+                        fprintf(stderr, "服务器未响应!!\n");
+                        my_err(__FILE__, "RecvMSG", __LINE__, 0);
+                    }
+                    printf("%d 接收第%d次包结束\n", __LINE__, i + 1);
+                    char * str1, * str2, *str3;
+                    char tempid[12], tempname[USER_NAME_MAX + 1], tempshi[5];
+                    str1 = strstr(recvpack.strmsg, _END_);
+                    str2 = strstr(str1 + strlen(_END_), _END_);
+                    str3 = strstr(str2 + strlen(_END_), _END_);
+                    strncpy(tempid, recvpack.strmsg, str1 - recvpack.strmsg);
+                    tempid[str1 - recvpack.strmsg] = '\0';
+                    strncpy(tempname, str1 + strlen(_END_), str2 - str1 - strlen(_END_));
+                    tempname[str2 - str1 - strlen(_END_)] = '\0';
+                    strncpy(tempshi, str2 + strlen(_END_), str3 - str2 - strlen(_END_));
+                    tempshi[str3 - str2 - strlen(_END_)] = '\0';
+
+                    myFriend[i].id = atoi(tempid);
+                    strcpy(myFriend[i].name, tempname);
+                    myFriend[i].shield = atoi(tempshi);
+                    printf("%d\n", myFriend[i].id);
+                    printf("%s\n", myFriend[i].name);
+                    printf("%d\n", myFriend[i].shield);
+                }
+                CmdExecSta = 1;
+                pthread_mutex_unlock(&mutex);
+                break;
+            }
+            case Flag_Cmd_LkGrpList:
+            {
+                ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
+                if (ret < 0)
+                    my_err(__FILE__, "SendMSG", __LINE__, 0);
+                if (ret == 0)
+                {
+                    fprintf(stderr, "服务器未响应!!\n");
+                    my_err(__FILE__, "RecvMSG", __LINE__, 0);
+                }
+                num = recvpack.statusflag;
+                for (int i = 0; i < num; i++)
+                {
+                    ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
+                    if (ret < 0)
+                        my_err(__FILE__, "SendMSG", __LINE__, 0);
+                    if (ret == 0)
+                    {
+                        fprintf(stderr, "服务器未响应!!\n");
+                        my_err(__FILE__, "RecvMSG", __LINE__, 0);
+                    }
+                    char * str1, * str2, *str3;
+                    char tempid[12], tempname[USER_NAME_MAX + 1], tempshi[5];
+                    str1 = strstr(recvpack.strmsg, _END_);
+                    str2 = strstr(str1 + strlen(_END_), _END_);
+                    str3 = strstr(str2 + strlen(_END_), _END_);
+                    strncpy(tempid, recvpack.strmsg, str1 - recvpack.strmsg);
+                    tempid[str1 - recvpack.strmsg] = '\0';
+                    strncpy(tempname, str1 + strlen(_END_), str2 - str1 - strlen(_END_));
+                    tempname[str2 - str1 - strlen(_END_)] = '\0';
+                    strncpy(tempshi, str2 + strlen(_END_), str3 - str2 - strlen(_END_));
+                    tempshi[str3 - str2 - strlen(_END_)] = '\0';
+
+                    myGroup[i].id = atoi(tempid);
+                    strcpy(myGroup[i].name, tempname);
+                    myGroup[i].shield = atoi(tempshi);
                 }
                 break;
             }
@@ -376,9 +515,9 @@ void* InitiaClient(void * socketfd)
 
 void vMsgBox(int sockfd)
 {
-    S_CLEAR(); S_BLOD(); S_COLOR(40, 33);
+    // S_CLEAR(); S_BLOD(); S_COLOR(40, 33);
     printf("                  - MessageBox -                   \n\n");    
-    S_CLOSE();
+    // S_CLOSE();
     if (MessageBox.empty())
         printf("\t你现在没有消息\n");
     else
@@ -400,8 +539,12 @@ void vMsgBox(int sockfd)
         {
             printf("\n请选择要处理的系统消息, 无效选择将会退出\n");
             printf("[Your Choice]\t");
-            scanf("%d", &choice);
-            if (MessageBox[choice - 1].kind == MSG_FriNOR || MessageBox[choice - 1].kind == MSG_GRPNOR)
+            if(scanf("%d", &choice) != 1)
+            {
+                while (getchar() != '\n');
+                return ;
+            }
+            if (choice <= 0 || choice > num || MessageBox[choice - 1].kind == MSG_FriNOR || MessageBox[choice - 1].kind == MSG_GRPNOR)
                 return;
             else if (MessageBox[choice - 1].kind == MSG_SYS_INVIFri)
             {
@@ -413,10 +556,16 @@ void vMsgBox(int sockfd)
                     strcpy(sendpack.strmsg, MessageBox[choice - 1].msg);
                     sendpack.cmdflag = Flag_Cmd_InvAddFri;
                     sendpack.source_id = MessageBox[choice - 1].sourceid;
-                    sendpack.source_id = MessageBox[choice - 1].targetid;
+                    sendpack.target_id = MessageBox[choice - 1].targetid;
+
+                    printf("source_id = %d\n", sendpack.source_id);
+                    printf("target_id = %d\n", sendpack.target_id);
+
                     ret = SendMSG(sockfd, &sendpack, PACK_SIZE, 0);
+                    // printf("success\n");
                     if (ret < 0)
                         my_err(__FILE__, "SendMSG", __LINE__, 0);
+                    printf("success\n");
                 }
             }
             else if (MessageBox[choice - 1].kind == MSG_SYS_AGRAGRP)
@@ -445,6 +594,7 @@ void GetGroupList(int sockfd)
 {
     int num, ret;
     Package recvpack, sendpack;
+    myGroup.clear();
     // 发送请求，获取群组列表
     memset(&sendpack, 0, sizeof(sendpack));
     sendpack.source_id = user_id;
@@ -452,89 +602,21 @@ void GetGroupList(int sockfd)
     ret = SendMSG(sockfd, &sendpack, PACK_SIZE, 0);
     if (ret < 0)
         my_err(__FILE__, "SendMSG", __LINE__, 0);
-    ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
-    if (ret < 0)
-        my_err(__FILE__, "SendMSG", __LINE__, 0);
-    if (ret == 0)
-    {
-        fprintf(stderr, "服务器未响应!!\n");
-        my_err(__FILE__, "RecvMSG", PACK_SIZE, 0);
-    }
-    num = recvpack.statusflag;
-    for (int i = 0; i < num; i++)
-    {
-        ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
-        if (ret < 0)
-            my_err(__FILE__, "SendMSG", __LINE__, 0);
-        if (ret == 0)
-        {
-            fprintf(stderr, "服务器未响应!!\n");
-            my_err(__FILE__, "RecvMSG", PACK_SIZE, 0);
-        }
-        char * str1, * str2, *str3;
-        char tempid[12], tempname[USER_NAME_MAX + 1], tempshi[5];
-        str1 = strstr(recvpack.strmsg, _END_);
-        str2 = strstr(str1 + strlen(_END_), _END_);
-        str3 = strstr(str2 + strlen(_END_), _END_);
-        strncpy(tempid, recvpack.strmsg, str1 - recvpack.strmsg);
-        tempid[str1 - recvpack.strmsg] = '\0';
-        strncpy(tempname, str1 + strlen(_END_), str2 - str1 - strlen(_END_));
-        tempname[str2 - str1 - strlen(_END_)] = '\0';
-        strncpy(tempshi, str2 + strlen(_END_), str3 - str2 - strlen(_END_));
-        tempshi[str3 - str2 - strlen(_END_)] = '\0';
-
-        myGroup[i].id = atoi(tempid);
-        strcpy(myGroup[i].name, tempname);
-        myGroup[i].shield = atoi(tempshi);
-    }
 }
 
 void GetFriList(int sockfd)
 {
     int num, ret;
     Package recvpack, sendpack;
+    myFriend.clear();
     // 发送请求，获取好友列表
     memset(&sendpack, 0, sizeof(sendpack));
     sendpack.source_id = user_id;
+    // printf("user_id = %d\n", user_id);
     sendpack.cmdflag = Flag_Cmd_LkFriList;
     ret = SendMSG(sockfd, &sendpack, PACK_SIZE, 0);
     if (ret < 0)
         my_err(__FILE__, "SendMSG", __LINE__, 0);
-    ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
-    if (ret < 0)
-        my_err(__FILE__, "SendMSG", __LINE__, 0);
-    if (ret == 0)
-    {
-        fprintf(stderr, "服务器未响应!!\n");
-        my_err(__FILE__, "RecvMSG", PACK_SIZE, 0);
-    }
-    num = recvpack.statusflag;
-    for (int i = 0; i < num; i++)
-    {
-        ret = RecvMSG(sockfd, &recvpack, PACK_SIZE, 0);
-        if (ret < 0)
-            my_err(__FILE__, "SendMSG", __LINE__, 0);
-        if (ret == 0)
-        {
-            fprintf(stderr, "服务器未响应!!\n");
-            my_err(__FILE__, "RecvMSG", PACK_SIZE, 0);
-        }
-        char * str1, * str2, *str3;
-        char tempid[12], tempname[USER_NAME_MAX + 1], tempshi[5];
-        str1 = strstr(recvpack.strmsg, _END_);
-        str2 = strstr(str1 + strlen(_END_), _END_);
-        str3 = strstr(str2 + strlen(_END_), _END_);
-        strncpy(tempid, recvpack.strmsg, str1 - recvpack.strmsg);
-        tempid[str1 - recvpack.strmsg] = '\0';
-        strncpy(tempname, str1 + strlen(_END_), str2 - str1 - strlen(_END_));
-        tempname[str2 - str1 - strlen(_END_)] = '\0';
-        strncpy(tempshi, str2 + strlen(_END_), str3 - str2 - strlen(_END_));
-        tempshi[str3 - str2 - strlen(_END_)] = '\0';
-
-        myFriend[i].id = atoi(tempid);
-        strcpy(myFriend[i].name, tempname);
-        myFriend[i].shield = atoi(tempshi);
-    }
 }
 
 int vFriendList()
@@ -543,13 +625,19 @@ int vFriendList()
     S_CLEAR(); 
     // S_BLOD(); S_COLOR(40, 33);
     printf("                  - FriendList -                   \n\n");    
-    // S_CLOSE();
+    // S_CLOSE()；
+    CmdExecSta = 0;
     GetFriList(sock_fd);
+    while (!CmdExecSta)
+        ;
+    CmdExecSta = 0;
 
     num = myFriend.size();
     if (num == 0)
     {
         printf("好友列表为空\n");
+        printf("按任意键退出....\n");
+        getchar();
         return -1;
     }
         
@@ -583,11 +671,14 @@ int vGroupList()
     printf("                  - GroupList -                   \n\n");    
     // S_CLOSE();
     GetGroupList(sock_fd);
+    sleep(1);
 
     num = myGroup.size();
     if (num == 0)
     {
         printf("群组列表为空\n");
+        printf("按任意键退出....\n");
+        getchar();
         return -1;
     }
 
@@ -613,10 +704,27 @@ int vGroupList()
     }
 }
 
-void vChatWithOne(int m)
+void vChatWithOne(int targetid)
 {
-    S_CLEAR(); S_BLOD(); S_COLOR(40, 33);
+    S_CLEAR(); 
+    char inputmsg[128];
+    Package Msg;
+    int ret;
+    // S_BLOD(); S_COLOR(40, 33);
     printf("                  - GroupList -                   \n\n");    
-    S_CLOSE();
-    return;
+    while (1)
+    {
+        while (s_gets(inputmsg, 128, stdin) && inputmsg[0] !='\n')
+        {
+            if (strcmp(inputmsg, "quit") == 0)
+                return;
+            Msg.source_id = user_id;
+            Msg.target_id = targetid;
+            strcpy(Msg.strmsg, inputmsg);
+            Msg.cmdflag = Flag_Cmd_Msg;
+            ret = SendMSG(sock_fd, &Msg, PACK_SIZE, 0);
+            if (ret < 0)
+                my_err(__FILE__, "SendMSG", __LINE__, 0);
+        }
+    }
 }
