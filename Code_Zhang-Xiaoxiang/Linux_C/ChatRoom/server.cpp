@@ -80,7 +80,7 @@ int main(void)
                 ev.events = EPOLLIN;
                 epoll_ctl(epfd, EPOLL_CTL_ADD, conn_fd, &ev);
             }
-            if (events[i].events & EPOLLIN)    // 收到package, 处理
+            else if (events[i].events & EPOLLIN)    // 收到package, 处理
             {
                 conn_fd = events[i].data.fd;
                 if (pthread_create(&pth, NULL, pthreadFun, (void*)&conn_fd) < 0)
@@ -121,6 +121,14 @@ void EndEvents(void)
     IdWithSock.clear();
 }
 
+void reset_oneshot(int epollfd, int fd)     // 重置事件
+{
+    epoll_event event;
+    event.data.fd = fd;
+    event.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
+    epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
+}
+
 void* pthreadFun(void * arg)
 {
     int ret, kase, sourceid;
@@ -130,9 +138,14 @@ void* pthreadFun(void * arg)
 
     // 接收包
     ret = RecvMSG(confd, &recvpack, PACK_SIZE, 0);
-    printf("ret == %d \n",ret);
+    fprintf(stderr, "ret == %d \n", ret);
     if (ret < 0)
+    {
         my_err(__FILE__, "RecvMSG", __LINE__, 1);
+        close(confd);
+        pthread_exit(0);
+    }
+       
     else if (ret == 0)                          // 客户度异常退出　[软件中断]
     {
         epoll_ctl(epfd, EPOLL_CTL_DEL, confd, &ev);
@@ -171,6 +184,7 @@ void* pthreadFun(void * arg)
                 IdWithSock.erase(temp_userid);
                 printf("[user](id = %d) exit\n", temp_userid);
             }
+            close(confd);
             fprintf(stdout, "[status] 客户端正常退出 [socket] %d\n\n", confd);
             pthread_exit(0);
             break;
@@ -190,9 +204,10 @@ void* pthreadFun(void * arg)
                     fprintf(stdout, "[id] `%d` 在群　[id] `%d`　发送了一条群聊信息\n", sourceid, grp_id);
                     // 应该查找一下这个群还在不在
                     int mem[MEM_NUM] = {0};       
-                    GrpMemberList(grp_id, mem, NULL, NULL); // 获取群成员列表
+                    GrpMemberList(grp_id, mem, NULL); // 获取群成员列表
                     for (int i = 0; mem[i] != 0; i++)
                     {
+                        recvpack.source_id = grp_id;
                         if (mem[i] == sourceid)             // 跳过自己
                             continue;
                         it = IdWithSock.find(mem[i]);
@@ -448,11 +463,13 @@ void* pthreadFun(void * arg)
             something[str2 - str1 - strlen(_END_)] = '\0';
 
             ret = CreateGroup(sourceid, grpname, something);
+            sendpack.cmdflag = Flag_Cmd_CreateGrp;
             sendpack.statusflag = ret;
 
             ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
             if (ret < 0)            
                 my_err(__FILE__, "SendMSG", __LINE__, 1);
+            break;
         }
         case Flag_Cmd_AddGrp:
         {
@@ -467,12 +484,14 @@ void* pthreadFun(void * arg)
             
             while (box[count] != 0)
             {
+                sendpack.cmdflag = Flag_Cmd_Msg;
+                sendpack.statusflag = MSG_SYS_AGRAGRP;  // 修改包为一
                 temp = box[count];
                 it = IdWithSock.find(temp);
                 if (it == IdWithSock.end())     // 如果不在线
                 {
                     fprintf(stdout, "目标用户[%d]处于离线状态，私聊信息将存入数据库中\n", temp);
-                    ret = OfflineMSG(&sendpack, temp, MSG_GRPNOR);
+                    ret = OfflineMSG(&sendpack, temp, MSG_SYS_AGRAGRP);
                     if (ret == 0)
                         fprintf(stderr, "[ERROR] 离线消息存储失败\n");
                 }
@@ -486,6 +505,7 @@ void* pthreadFun(void * arg)
                 }
                 count++;
             }
+            break;
         }
         case Flag_Cmd_SyncOffMsg:
         {
@@ -511,12 +531,11 @@ void* pthreadFun(void * arg)
         {
             int grp_id = recvpack.target_id;
             int memid[MEM_NUM], mem_sta[MEM_NUM];
-            char memname[MEM_NUM][USER_NAME_MAX + 1];
             memset(memid, 0, sizeof(memid));
             memset(memid, 0, sizeof(memid));
             memset(memid, 0, sizeof(memid));
 
-            int num = GrpMemberList(grp_id, memid, memname, mem_sta);
+            int num = GrpMemberList(grp_id, memid, mem_sta);
 
             sendpack.cmdflag = Flag_Cmd_LkGrpMem;
             sendpack.source_id = sourceid;
@@ -531,7 +550,7 @@ void* pthreadFun(void * arg)
             for (int i = 0; i < num; i++)
             {
                 char temp[MSG_SIZE];
-                sprintf(temp, "%d%s%s%s%d%s", memid[i], _END_, memname[i], _END_, mem_sta[i], _END_);
+                sprintf(temp, "%d%s%d%s", memid[i], _END_, mem_sta[i], _END_);
                 printf("temp: %s\n", temp);
                 sendpack.cmdflag = Flag_Cmd_LkGrpMem;
                 sendpack.source_id = sourceid;
@@ -541,7 +560,7 @@ void* pthreadFun(void * arg)
 
                 ret = SendMSG(confd, &sendpack, PACK_SIZE, 0);
                 if (ret < 0)
-                    my_err(__FILE__, &sendpack, __LINE__, 0);
+                    my_err(__FILE__, "SendMSG", __LINE__, 0);
                 printf("%d > 获取包成功\n", i + 1);
             }
 
@@ -549,23 +568,25 @@ void* pthreadFun(void * arg)
         }
         case Flag_Cmd_DisBand:      // 解散群
         {
+            int tarid = recvpack.target_id;
+            DelGroup(tarid);
             break;
         }
         case Flag_Cmd_SetCtrl:      // 设置管理员
         {
+            SetCtrl(recvpack.source_id, recvpack.target_id);
             break;
         }
         case Flag_Cmd_UnSetCtrl:    // 取消设置管理员
         {
+            UnSetCtrl(recvpack.source_id, recvpack.target_id);
             break;
         }
         case Flag_Cmd_RemvSome:     // 将某人移出群
         {
             int sor = recvpack.source_id;   // 群id
             int tar = recvpack.target_id;   // 用户id
-            
-            
-    
+            ReOneFromGrp(tar, sor);
             break;
         }
         case Flag_Cmd_SendFile:     // 发文件
@@ -601,17 +622,13 @@ void* pthreadFun(void * arg)
         }
         case Flag_Cmd_InvAddMem:    // 同意加群请求
         {
-            // username + end + grpname + end
+
             int grp_id = recvpack.target_id;
             char username[USER_NAME_MAX + 1], grpname[USER_NAME_MAX + 1];
             char * str1, * str2;
-            str1 = strstr(recvpack.strmsg, _END_);
-            str2 = strstr(str1 + strlen(_END_), _END_);
-
-            strncpy(username, recvpack.strmsg, str1 - recvpack.strmsg);
-            username[str1 - recvpack.strmsg] = '\0';
-            strncpy(grpname, str1 + strlen(_END_), str2 - str1 - strlen(_END_));
-            grpname[str2 - str1 - strlen(_END_)] = '\0';
+            
+            SearchAccId(sourceid, username);
+            SearchGrpId(grp_id, grpname);
 
             ret = AddOneToGrp(sourceid, username, grp_id, grpname);
             if (ret == 0)
@@ -629,6 +646,7 @@ void* pthreadFun(void * arg)
             break;
         }
     }
+    reset_oneshot(epfd, confd);
     pthread_exit(0);
 
 }

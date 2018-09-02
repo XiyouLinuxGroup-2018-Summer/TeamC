@@ -29,9 +29,10 @@ void get_time(char * string)
     char temptime[55];
     sprintf(temptime, "%d-%02d-%02d %02d:%02d:%02d", timenow->tm_year + 1900, timenow->tm_mon + 1, timenow->tm_mday, timenow->tm_hour, timenow->tm_min, timenow->tm_sec);
     if (string == NULL)
-        printf("%s\n", temptime);
+        printf("\n%s", temptime);
     else
-        strcpy(string, temptime);
+        // strcpy(string, temptime);
+        sprintf(string, "\n%s\n", temptime);
 }
 
 int main() 

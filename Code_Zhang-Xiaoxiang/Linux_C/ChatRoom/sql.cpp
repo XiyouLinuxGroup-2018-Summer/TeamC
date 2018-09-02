@@ -34,6 +34,7 @@ char* SearchAccId(int id, char * name)
     sprintf(name, "%s", _row[0]);
 
     mysql_free_result(_res);
+    //?????malloc??
     return name;
 }
 
@@ -274,7 +275,7 @@ int CreateGroup(int owner_id, char * name, char * something)
 #ifdef DEBUG
     printf("创建群聊-获取新建群聊id\n");
     printf("sql: %s\n", sql);
-    printf("id = %d", groupid);
+    printf("id = %d\n", groupid);
 #endif
 
     // 清除残余表
@@ -321,7 +322,7 @@ int CreateGroup(int owner_id, char * name, char * something)
     _res = mysql_store_result(_mysql);
     mysql_free_result(_res);
 
-    return 1;
+    return groupid;
 }
 
 char* SearchGrpId(int id, char * grp)
@@ -358,8 +359,7 @@ int AddOneToGrp(int user_id, char * user_name, int grp_id, char * grp_name)
     int ret;
     char sql[256];
     MYSQL_RES * _res;
-    MYSQL_ROW _row;
-    sprintf(sql, "insert into `%s`.`%d` values(%d, '%s', %d);", Data_GroupInfo, grp_id, user_id, user_name, GRP_STA_NOR);
+    sprintf(sql, "insert into `%s`.`%d` values(%d, %d);", Data_GroupInfo, grp_id, user_id, GRP_STA_NOR);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
 #ifdef DEBUG
     printf("添加群成员-群成员信息更改\n");
@@ -384,13 +384,13 @@ int AddOneToGrp(int user_id, char * user_name, int grp_id, char * grp_name)
     return 1;
 }
 
-int GrpMemberList(int grp_id, int mem_id[MEM_NUM], char mem_name[MEM_NUM][USER_NAME_MAX + 1], int mem_sta[MEM_NUM])
+int GrpMemberList(int grp_id, int mem_id[MEM_NUM], int mem_sta[MEM_NUM])
 {
     int ret, count = 0;
     char sql[256];
     MYSQL_RES * _res;
     MYSQL_ROW _row;
-    sprintf(sql, "select id, name, status from `%s`.`%d`;", Data_GroupInfo, grp_id);
+    sprintf(sql, "select id, status from `%s`.`%d`;", Data_GroupInfo, grp_id);
     ret = mysql_real_query(_mysql, sql, strlen(sql));
 #ifdef DEBUG
     printf("获取群成员列表\n");
@@ -404,10 +404,12 @@ int GrpMemberList(int grp_id, int mem_id[MEM_NUM], char mem_name[MEM_NUM][USER_N
     {
         if (mem_id)
             mem_id[count] = atoi(_row[0]);
-        if (mem_name)
-            strcpy(mem_name[count], _row[1]);
         if (mem_sta)
-            mem_sta[count] = atoi(_row[2]);
+            mem_sta[count] = atoi(_row[1]);
+        if (mem_id)
+            printf("memid = %d\n", mem_id[count]);
+        if (mem_sta)
+            printf("memstd = %d\n", mem_sta[count]);
         count++;
     }
 
@@ -506,6 +508,19 @@ int TransOffMsg(int usr_id, char message[OffMsg_NUM][256])
         sprintf(message[count], "%s%s%s%s%s%s%s%s%s%s", _row[0], _END_, _row[1], _END_, _row[2], _END_, _row[3], _END_, _row[4], _END_);
         count++;
     }
+    mysql_free_result(_res);
+
+    sprintf(sql, "delete from `%s`.`%d`;", Data_OfflineMsg, usr_id);
+#ifdef DEBUG    
+    printf("清除数据库中的临时数据\n");
+    printf("sql: %s\n", sql);
+#endif
+    ret = mysql_real_query(_mysql, sql,strlen(sql));
+    if (ret)
+        sql_err(__LINE__, _mysql);
+    _res = mysql_store_result(_mysql);
+    mysql_free_result(_res);
+
     return count;
 }
 
@@ -515,7 +530,7 @@ int ReOneFromGrp(int user_id, int grp_id)
     int ret;
     char sql[512];
     MYSQL_RES * _res;
-    sprintf(sql, "delete from `%d`.`%d` where id = %d AND status = %d;", Data_UserInfo, user_id, grp_id, STA_GRP_NOR);
+    sprintf(sql, "delete from `%s`.`%d` where id = %d AND status = %d;", Data_UserInfo, user_id, grp_id, STA_GRP_NOR);
 #ifdef DEBUG
     printf("移除用户关系表中的群组信息\n");
     printf("sql: %s\n", sql);
@@ -529,7 +544,7 @@ int ReOneFromGrp(int user_id, int grp_id)
     _res = mysql_store_result(_mysql);
     mysql_free_result(_res);
 
-    sprintf(sql, "delete from '%s`.`%s` where id = %d;", Data_GroupInfo, grp_id, user_id);
+    sprintf(sql, "delete from '%s`.`%d` where id = %d;", Data_GroupInfo, grp_id, user_id);
 #ifdef DEBUG
     printf("移除群组成员相关信息\n");
     printf("sql: %s\n", sql);
@@ -555,7 +570,7 @@ void DelGroup(int grp_id)
     MYSQL_RES * _res;
     MYSQL_ROW _row;
 
-    sprintf(sql, "delete from `%s`.`%d` where id = %d;", Data_ChatBase, Table_Grouplist, grp_id);
+    sprintf(sql, "delete from `%s`.`%s` where id = %d;", Data_ChatBase, Table_Grouplist, grp_id);
     #ifdef DEBUG
     printf("删除群 - 删除基础表中的群记录\n");
     printf("sql: %s\n", sql);
@@ -569,7 +584,7 @@ void DelGroup(int grp_id)
     _res = mysql_store_result(_mysql);
     mysql_free_result(_res); 
 
-    sprintf(sql, "select id from `%s`.`%s`;", Data_UserInfo, grp_id);
+    sprintf(sql, "select id from `%s`.`%d`;", Data_UserInfo, grp_id);
     #ifdef DEBUG
     printf("删除群 - 删除群里的每个用户\n");
     printf("sql: %s\n", sql);
@@ -614,7 +629,33 @@ void SetCtrl(int grp_id, int user_id)
 {
     int ret;
     char sql[512];
+    MYSQL_RES * _res;
     sprintf(sql, "update `%s`.`%d` set status = %d where id = %d", Data_GroupInfo, grp_id, GRP_STA_CON, user_id);
     #ifdef DEBUG
+        printf("设置管理员操作");
+        printf("sql: %s\n", sql);
     #endif
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
+    if (ret)
+        sql_err(__LINE__, _mysql);
+    _res = mysql_store_result(_mysql);
+    mysql_free_result(_res);
+}
+
+// 取消管理员设置
+void UnSetCtrl(int grp_id, int user_id)
+{
+    int ret;
+    char sql[512];
+    MYSQL_RES * _res;
+    sprintf(sql, "update `%s`.`%d` set status = %d where id = %d", Data_GroupInfo, grp_id, GRP_STA_NOR, user_id);
+    #ifdef DEBUG
+        printf("设置管理员操作");
+        printf("sql: %s\n", sql);
+    #endif
+    ret = mysql_real_query(_mysql, sql, strlen(sql));
+    if (ret)
+        sql_err(__LINE__, _mysql);
+    _res = mysql_store_result(_mysql);
+    mysql_free_result(_res);
 }

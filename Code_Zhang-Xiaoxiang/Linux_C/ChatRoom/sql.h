@@ -120,10 +120,10 @@ char* SearchGrpId(int id, char * grp);
 int AddOneToGrp(int user_id, char * user_name, int grp_id, char * grp_name);
 
 // fun: 把某人移出群
-int RemOneFromGrp(int user_id, int grp_id);
+int ReOneFromGrp(int user_id, int grp_id);
 
 // fun: 群成员列表
-int GrpMemberList(int grp_id, int mem_id[MEM_NUM], char mem_name[MEM_NUM][USER_NAME_MAX + 1], int mem_sta[MEM_NUM]);
+int GrpMemberList(int grp_id, int mem_id[MEM_NUM], int mem_sta[MEM_NUM]);
 
 // fun: 离线消息
 int OfflineMSG(Package * msg, int tar_id, int flag);
@@ -139,5 +139,11 @@ int TransOffMsg(int usr_id, char message[OffMsg_NUM][256]);
 
 // fun: 删除群
 void DelGroup(int grp_id);
+
+// fun: 设置管理员
+void SetCtrl(int grp_id, int user_id);
+
+// fun: 取消管理员
+void UnSetCtrl(int grp_id, int user_id);
 
 #endif

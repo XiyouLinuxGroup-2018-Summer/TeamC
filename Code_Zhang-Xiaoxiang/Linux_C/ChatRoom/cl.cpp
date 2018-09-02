@@ -20,6 +20,11 @@ typedef struct grp
     char name[USER_NAME_MAX + 1];
     int shield;
 }sGroup;
+typedef struct mem
+{
+    int id;
+    int status;
+}sMember;
 
 typedef struct message                  // 消息结构
 {                                       // sourceid 即为消息类型
@@ -31,7 +36,7 @@ typedef struct message                  // 消息结构
 }Message;
 
 int flag = 0;                                           // 标记，recv获取到信息之后才会处理相关事情
-int ChatWithWho = 0;                                    // 标记和谁在聊天 -　默认设置为0, 值为用户id
+int ChatWithWho = 0;                                    // 标记和谁在聊天 -　默认设置为0, 值为用户id 群聊为负值，私聊为正值
 int CmdExecSta = -1;                                    // 操作执行情况，0-默认，1 -> 成功, -1 -> 失败
 
 int user_id, sock_fd;                                   // 用户id                                     
@@ -39,6 +44,7 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;      // 新建一个锁，防
 vector<sFriend>myFriend;                                // 好友列表
 vector<sGroup>myGroup;                                  // 群组列表
 vector<Message>MessageBox;                              // 消息盒子
+vector<sMember>GrpMem;
 
 void* PrecvMSG(void * arg);                             // 线程: 接受消息
 void  vMsgBox(void);                                    // 消息盒子
@@ -53,10 +59,29 @@ void ChatWith(int tarid, int kind);
 void ShiSome(int tarid);
 void UnShiSome(int tarid);
 int  MainMenu(void);
-void MessageHistory(int tarid);
+void MessageHistory(int tarid, int kind);
 void DeleteSome(int tarid);
 void AddFri(int tarid);
 void LookMsgBox();
+void LookMember(int grpid);
+void ExGroup(int grpid, int user);
+void ConGroup(int grpid);
+void ExGroup(int grpid, int user);
+void RemoveSome(int grpid);
+void DisBand(int grpid);
+void UnSetConMem(int grpid);
+void SetConMem(int grpid);
+int  SearchInGroup(int userid);
+void GetMemberList(int num);
+void Exit(void);
+void FunGroupMenu(int grpid);
+void AddGrp(int id);
+void CreateGrp(void);
+void GetGrpList(int num);
+void SendGetGrpList(void);
+void PrintGrpList(void);
+int SearchMyGrp(int searchid);
+void PrintGrpMem(void);
 
 int main(void)
 {
@@ -79,7 +104,10 @@ int main(void)
     // 连接服务器
     ret = connect(sock_fd, (struct sockaddr*)&cli_addr, sizeof(struct sockaddr_in));
     if (ret < 0)
+    {
+        close(sock_fd);
         my_err(__FILE__, "connect", __LINE__, 0);
+    }
 
     // 开始界面
     while (loopflag)
@@ -130,7 +158,10 @@ int main(void)
                     printf(":) 登录成功\n");
                     ret = pthread_create(&Tinit, NULL, InitiaClient, (void*)&sock_fd);
                     if (ret < 0)
+                    {
+                        close(sock_fd);
                         my_err(__FILE__, "pthread_create", __LINE__, 0);
+                    }
                     for (int i = 3; i > 0; i--)
                     {
                         printf("%d 秒后按任意键继续", i);
@@ -156,11 +187,15 @@ int main(void)
     pthread_join(Tinit, NULL);                          // 初始化
     ret = pthread_create(&Trecv, NULL, PrecvMSG, (void*)&sock_fd);    
     if (ret < 0)
+    {
+        close(sock_fd);
         my_err(__FILE__, "pthread_create", __LINE__, 0);
+    }
 
     int begain = 1;
     while (1)
     {
+        int addid;        
         S_CLEAR();
         if (begain)
         {
@@ -196,9 +231,27 @@ int main(void)
                 }
                 break;
             case 3:
+                SendGetGrpList();
+                if (myGroup.size() == 0)
+                    break;
+                else
+                {
+                    while (1)
+                    {
+                        int cmd;
+                        PrintGrpList();
+                        printf("请输入要操作的群id:(0 quit)\n");
+                        if (scanf("%d", &cmd) != 1 || (cmd ==  0))
+                        {
+                            while (getchar() != '\n')
+                                ;
+                            break;
+                        }
+                        FunGroupMenu(cmd);
+                    }
+                }
                 break;
             case 4:
-                int addid;
                 printf("请输入要添加的好友id:\n");
                 if (scanf("%d", &addid) != 1)
                 {
@@ -208,18 +261,26 @@ int main(void)
                 }
                 AddFri(addid);
                 break;
-            case 5:
+            case 5: // 添加群
+                printf("请输入要添加的群id:\n");
+                if (scanf("%d", &addid) != 1)
+                {
+                    while (getchar() != '\n')
+                        ;
+                    break;
+                }
+                AddGrp(addid);
                 break;
             case 6:
+                CreateGrp();
                 break;
             case 7:
                 status = 0;
                 goto Menu;
                 break;
             case 8: 
-                close(sock_fd);
+                Exit();
                 return 0;
-                break;
             default:
                 printf("无效命令\n");
                 break;
@@ -242,7 +303,10 @@ void* PrecvMSG(void * arg)
             exit(0);
         }
         if (ret < 0)
+        {
+            close(sock_fd);
             my_err(__FILE__, "RecvMSG", __LINE__, 0);
+        }
 
         kind = recvpack.cmdflag;
         switch (kind)
@@ -250,7 +314,7 @@ void* PrecvMSG(void * arg)
             case Flag_Cmd_LkFriList:
             {
                 pthread_mutex_lock(&mutex);
-                printf("===========\n");
+                // printf("===========\n");
                 GetFriList(recvpack.statusflag);
                 flag = 1;                       // 标记事件已完成
                 pthread_mutex_unlock(&mutex);
@@ -258,11 +322,28 @@ void* PrecvMSG(void * arg)
             }
             case Flag_Cmd_Msg:
             {
-                if (recvpack.source_id == ChatWithWho)      // 正在聊天
+                // printf("recvpack.source_id = %d\n", recvpack.source_id);
+                // printf("chatwithwho = %d\n", ChatWithWho);
+                char tempfile[30];
+                sprintf(tempfile, "./%dand%d", user_id, ChatWithWho);
+                
+                int fd = open(tempfile, O_RDWR | O_CREAT | O_APPEND, S_IRWXU);
+                if (fd == -1)
+                    perror("open");
+
+                char msg[MSG_SIZE + 1];
+                get_time(msg);
+                strcat(msg, recvpack.strmsg);
+                strcat(msg, "\n");
+
+                printf("msg = %s\n", msg);
+                write(fd, msg, strlen(msg));
+
+                if (recvpack.source_id == ChatWithWho || recvpack.source_id == -1 * ChatWithWho)      
                 {
                     get_time(NULL);
                     S_COLOR(49, 33);
-                    printf("%s", recvpack.strmsg);
+                    printf("%s\n", recvpack.strmsg);
                     S_CLOSE();
                     printf("\n");
                 }
@@ -276,11 +357,46 @@ void* PrecvMSG(void * arg)
                     m.targetid = recvpack.target_id;
                     MessageBox.push_back(m);
 
-                    printf("[system] 你有一条新消息，请到消息盒子查看\n");
+                    printf("\n[system] 你有一条新消息，请到消息盒子查看\n");
                 }
+
+                close(fd);
+
                 break;
             }
-            // case Flag_
+            case Flag_Cmd_CreateGrp:
+            {
+                int ret = recvpack.statusflag;
+                if (ret)
+                {
+                    printf("群聊创建成功 :)\n");
+                    printf("群id为%d:\n", ret);
+                }
+                else 
+                {
+                    printf("Sorry, 服务器出了点故障，群聊创建失败 :< \n");
+                }
+                printf("按回车键退出\n");
+                while (getchar() != '\n')
+                    ;
+                break;
+            }
+            case Flag_Cmd_LkGrpList:
+            {
+                pthread_mutex_lock(&mutex);
+                GetGrpList(recvpack.statusflag);
+                flag = 1;                       // 标记事件已完成
+                pthread_mutex_unlock(&mutex);
+                break;
+            }
+            case Flag_Cmd_LkGrpMem:
+            {
+                pthread_mutex_lock(&mutex);
+                GetMemberList(recvpack.statusflag);
+                flag = 1;                       // 标记事件已完成
+                pthread_mutex_unlock(&mutex);
+                break;
+            }
         }   
     }
 }
@@ -291,6 +407,7 @@ void* InitiaClient(void * arg)
     MessageBox.clear();
     myFriend.clear();
     myGroup.clear();
+    GrpMem.clear();
     // 发送请求，获取离线消息
     GetOffMSG(); 
 
@@ -307,11 +424,18 @@ void GetOffMSG(void)
 
     ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);    // 发送请求
     if (ret < 0)
+    {
+        close(sock_fd);
         my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
 
     ret = RecvMSG(sock_fd, &recvpack, PACK_SIZE, 0);     // 接受包的数量
     if (ret < 0)
+    {
+        close(sock_fd);
         my_err(__FILE__, "RecvMSG", __LINE__, 0);
+    }
+
     if (ret == 0)
     {
         fprintf(stderr, "服务器未响应!!\n");
@@ -326,10 +450,14 @@ void GetOffMSG(void)
         // printf("ret = %d\n", ret);
         // printf("msg: %s\n", recvpack.strmsg);
         if (ret < 0)
+        {
+            close(sock_fd);
             my_err(__FILE__, "SendMSG", __LINE__, 0);
+        }
         if (ret == 0)
         {
             fprintf(stderr, "服务器未响应!!\n");
+            close(sock_fd);
             my_err(__FILE__, "RecvMSG", PACK_SIZE, 0);
         }
 
@@ -374,7 +502,11 @@ void SendGetFriList(void)
     sendpack.source_id = user_id;       
     ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
     if (ret < 0)
+    {
+        close(sock_fd);
         my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
+ 
     while (flag == 0)  
         ;
     flag = 0;
@@ -390,10 +522,15 @@ void GetFriList(int num)
     {
         ret = RecvMSG(sock_fd, &recvpack, PACK_SIZE, 0);
         if (ret < 0)
+        {
+            close(sock_fd);
             my_err(__FILE__, "SendMSG", __LINE__, 0);
+        }
+
         if (ret == 0)
         {
             fprintf(stderr, "服务器未响应!!\n");
+            close(sock_fd);
             my_err(__FILE__, "RecvMSG", __LINE__, 0);
         }
         
@@ -428,7 +565,11 @@ void SendGetGrpList(void)
     sendpack.source_id = user_id;       
     ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
     if (ret < 0)
+    {
+        close(sock_fd);
         my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
+
     while (flag == 0)  
         ;
     flag = 0;
@@ -438,16 +579,21 @@ void GetGrpList(int num)
 {
     int ret;
     Package recvpack;
-    myFriend.clear();       // 清空以存储
+    myGroup.clear();       // 清空以存储
 
     for (int i = 0; i < num; i++)
     {
         ret = RecvMSG(sock_fd, &recvpack, PACK_SIZE, 0);
         if (ret < 0)
+        {
+            close(sock_fd);
             my_err(__FILE__, "SendMSG", __LINE__, 0);
+        }
+
         if (ret == 0)
         {
             fprintf(stderr, "服务器未响应!!\n");
+            close(sock_fd);
             my_err(__FILE__, "RecvMSG", __LINE__, 0);
         }
         
@@ -499,13 +645,24 @@ int SearchMyFri(int searchid)
         if (myFriend[i].id == searchid)
             return i;
     }
-    return 0;
+    return -1;
+}
+
+int SearchMyGrp(int searchid)
+{
+    int num = (int)myGroup.size();
+    for (int i = 0; i < num; i++)
+    {
+        if (myGroup[i].id == searchid)
+            return i;
+    }
+    return -1;
 }
 
 void FunFriendMenu(int tarid)
 {
-    int cmd;
-    if (SearchMyFri(tarid) == 0)
+    int cmd, loop = 1, temp;
+    if (SearchMyFri(tarid) == -1)
         printf("他还不是你的好友!\n");
     do
     {
@@ -517,44 +674,96 @@ void FunFriendMenu(int tarid)
         printf("\t\t[4] 移出黑名单\t\t\t\n");
         printf("\t\t[5] 删除联系人\t\t\t\n");
         printf("\t\t[6] 发送文件\t\t\t\n");
-        // printf("\t\t[7] 返回\t\t\t\n");
+        printf("\t\t[7] 返回\t\t\t\n");
         printf("\n-------------------------------------------------\n");
         printf("\nYour Choice is :\t");
         scanf("%d", &cmd);
         while (getchar() != '\n');
-        if (cmd > 0 && cmd <= 7)
-            break;
-    }while(1); 
-
-    switch (cmd)
-    {
-        case 1:
-            ChatWithWho = tarid;
-            ChatWith(tarid, 1);
-            ChatWithWho = 0;
-            break;
-        case 2:
-            MessageHistory(tarid);
-            break;
-        case 3:
-            ShiSome(tarid);
-            break;
-        case 4:
-            UnShiSome(tarid);
-            break;
-        case 5:
-            DeleteSome(tarid);
-        case 6:
-            // SendFile(tarid);
-            break;
-        // case 7:
-        //     break;
-        default:
-            printf("无效命令\n");
-    }
+        switch (cmd)
+        {
+            case 1:
+                ChatWithWho = tarid;
+                ChatWith(tarid, 1);
+                ChatWithWho = 0;
+                break;
+            case 2:
+                MessageHistory(tarid, 1);
+                break;
+            case 3:
+                ShiSome(tarid);
+                break;
+            case 4:
+                UnShiSome(tarid);
+                break;
+            case 5:
+                printf("请输入要删除的好友id:\n");
+                scanf("%d", &temp);
+                DeleteSome(temp);
+            case 6:
+                // SendFile(tarid);
+                break;
+            case 7:
+                loop = 0;
+                break;
+            default:
+                printf("无效命令\n");
+        }
+    }while(loop); 
 }
 
-// void FunGroupMenu()
+void FunGroupMenu(int grpid)
+{
+    int cmd, loop = 1;
+    if (SearchMyGrp(grpid) == -1)
+        printf("你未加入该群!\n");
+    do
+    {
+        S_CLEAR(); 
+        printf("                  - Function -                   \n\n");    
+        printf("\t\t[1] 进入群聊\t\t\t\n");
+        printf("\t\t[2] 查看聊天记录\t\t\t\n");
+        printf("\t\t[3] 查看群成员\t\t\t\n");
+        printf("\t\t[4] 退出群聊\t\t\t\n");
+        printf("\t\t[5] 管理群[管理员]\t\t\t\n");
+        printf("\t\t[6] 返回\t\t\t\n");
+
+        printf("\n-------------------------------------------------\n");
+        printf("\nYour Choice is :\t");
+        scanf("%d", &cmd);
+        while (getchar() != '\n');
+        switch (cmd)
+        {
+            case 1:
+                ChatWithWho = -1 * grpid;
+                ChatWith(grpid, 0);
+                ChatWithWho = 0;
+                break;
+            case 2:
+                MessageHistory(grpid, 0);
+                break;
+            case 3:
+                LookMember(grpid);
+                PrintGrpMem();
+                printf("按任意键退出\n");
+
+                getchar();
+
+                break;
+            case 4:
+                ExGroup(grpid, user_id);
+                break;
+            case 5:
+                ConGroup(grpid);
+                break;
+            case 6:
+                loop = 0;
+                break;
+            default:
+                printf("无效命令\n");
+        }
+    }while (loop); 
+}
+
 
 // kind = 1, 私聊
 // kind = 0, 群聊
@@ -562,29 +771,43 @@ void ChatWith(int tarid, int kind)
 {
     S_CLEAR(); 
     int ret;
-    char inputmsg[128];
+    char inputmsg[128], tempfile[30], msg[MSG_SIZE + 1];
     Package Msg;
-    printf("                  - Chat with %d -                   \n\n", tarid);    
-    while (1)
-    {
-        while (s_gets(inputmsg, 510, stdin) && inputmsg[0] !='\0')
-        {
-            if (strcmp(inputmsg, "quit") == 0)
-                return;
-            Msg.source_id = user_id;
-            Msg.target_id = tarid;
-            Msg.cmdflag = Flag_Cmd_Msg;
-            strcpy(Msg.strmsg, inputmsg);
-            if (kind)
-                Msg.statusflag = MSG_FriNOR;
-            else   
-                Msg.statusflag = MSG_GRPNOR;
+    sprintf(tempfile, "./%dand%d", user_id, ChatWithWho);
+    int fd = open(tempfile, O_RDWR | O_CREAT | O_APPEND, S_IRWXU);
+    if (fd == -1)
+        perror("open");
 
-            ret = SendMSG(sock_fd, &Msg, PACK_SIZE, 0);
-            if (ret < 0)
-                my_err(__FILE__, "SendMSG", __LINE__, 0);
+    printf("                  - Chat with %d -                   \n\n", tarid);    
+    while (s_gets(inputmsg, 510, stdin) && inputmsg[0] !='\0')
+    {
+        get_time(msg);
+        strcat(msg, inputmsg);
+        strcat(msg, "\n");
+        write(fd, msg, strlen(msg));
+
+        Msg.source_id = user_id;
+        Msg.target_id = tarid;
+        Msg.cmdflag = Flag_Cmd_Msg;
+        sprintf(Msg.strmsg, "[%d] >> %s", user_id, inputmsg);
+
+        if (kind)
+            Msg.statusflag = MSG_FriNOR;
+        else   
+            Msg.statusflag = MSG_GRPNOR;
+
+        ret = SendMSG(sock_fd, &Msg, PACK_SIZE, 0);
+        if (ret < 0)
+        {
+            close(sock_fd);
+            my_err(__FILE__, "SendMSG", __LINE__, 0);
         }
+
+        if (strcmp(inputmsg, "quit") == 0)
+            break;
     }
+    
+    close(fd);
 }
 
 void ShiSome(int tarid)
@@ -604,7 +827,11 @@ void ShiSome(int tarid)
 
     ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
     if (ret < 0)
+    {
+        close(sock_fd);
         my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
+
     printf("好友已被屏蔽，你将不会收到来自他的信息\n");
 }
 
@@ -625,7 +852,11 @@ void UnShiSome(int tarid)
 
     ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
     if (ret < 0)
+    {
+        close(sock_fd);
         my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
+
     printf("已经解除对好友的屏蔽\n");
 }
 
@@ -653,14 +884,34 @@ int MainMenu()
     }while(1);   
 }
 
-void MessageHistory(int tarid)
+// kind == 1 私聊记录   kind == 0 群聊记录
+void MessageHistory(int tarid, int kind)
 {
-    // block;
+    char tempfile[30], tempbuf[512];
+    int tempid = kind == 0 ? -1 * tarid : tarid;
+    sprintf(tempfile, "/%dand%d", user_id, tempid);
+    int fd = open(tempfile, O_RDWR | O_CREAT | O_APPEND, S_IRWXU);
+    if (fd == -1)
+        perror("open");
+    printf("----------------------------------------\n");
+
+    read(fd, tempbuf, sizeof(tempbuf));
+    printf("%s", tempbuf);
+
+    printf("------------------ end -----------------\n");
+
+    close(fd);
 }
 
 void DeleteSome(int tarid)
 {
     int ret;
+    if (tarid == user_id)
+    {
+        printf("错误的操作!\n");
+        return ;
+    }
+
     Package sendpack;
     sendpack.cmdflag = Flag_Cmd_DelFri;
     sendpack.source_id = user_id;
@@ -668,7 +919,10 @@ void DeleteSome(int tarid)
 
     ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
     if (ret < 0)
+    {
+        close(sock_fd);
         my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
     
     // 更新好友列表
     SendGetFriList();
@@ -683,7 +937,7 @@ void AddFri(int tarid)
         printf("无效操作！无法添加自已为好友\n");
         return ;
     }
-    if (SearchMyFri(tarid) != 0)
+    if (SearchMyFri(tarid) >= 0)
     {
         printf("他已经是你的好友了，请不要重复添加！\n");
         return ;
@@ -694,31 +948,42 @@ void AddFri(int tarid)
     
     ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
     if (ret < 0)
+    {
+        close(sock_fd);
         my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
 
     printf("添加好友申请已发送\n");
+    printf("按回车键退出\n");
+    while (getchar() != '\n')
+        ;
     return ;
 }
 
 void LookMsgBox()
 {
     int choice, cmd, ret;
-    int num = MessageBox.size();
+
     Package sendpack;
     S_CLEAR();
     printf("                  - MessageBox -                   \n\n");
-    for (int i = 0; i < num; i++)
-    {
-        printf("[%d]\t", i + 1);
-        if (MessageBox[i].kind != MSG_FriNOR || MessageBox[i].kind != MSG_GRPNOR)
-            printf("[System Message]\t");
-        else    
-            printf("[%s'%d'给你发来一条信息]\t", MessageBox[i].kind == MSG_FriNOR ? "用户" : "群聊", MessageBox[i].sourceid);
-        printf("%s\n", MessageBox[i].msgtime);
-        printf("\t%s\n", MessageBox[i].msg);
-    }
+
     while(1)
     {
+        int num = MessageBox.size();
+        for (int i = 0; i < num; i++)
+        {
+            printf("[%d]\t", i + 1);
+            if (MessageBox[i].kind != MSG_FriNOR && MessageBox[i].kind != MSG_GRPNOR)
+                printf("[System Message]\t");
+            else    
+                printf("[%s'%d'给你发来一条信息]\t", MessageBox[i].kind == MSG_FriNOR ? "用户" : "群聊", MessageBox[i].sourceid);
+            printf("%s\n", MessageBox[i].msgtime);
+            printf("\t%s\n", MessageBox[i].msg);
+        }
+
+        printf("-------------------------------------------\n");
+
         printf("\n请选择要处理的系统消息, 无效选择将会退出\n");
         printf("[Your Choice]\t");
         if (scanf("%d", &choice) != 1)
@@ -730,11 +995,18 @@ void LookMsgBox()
             return;
         if (MessageBox[choice - 1].kind == MSG_FriNOR)
         {
+            ChatWithWho = MessageBox[choice - 1].sourceid;
             ChatWith(MessageBox[choice - 1].sourceid, 1);
+            ChatWithWho = 0;
+            MessageBox.erase(MessageBox.begin() + choice - 1);
         }
         else if (MessageBox[choice - 1].kind == MSG_GRPNOR)
         {
+            ChatWithWho = -1 * MessageBox[choice - 1].sourceid;
+            printf("%d: ChatWithWho = %d\n", __LINE__, ChatWithWho);
             ChatWith(MessageBox[choice - 1].sourceid, 0);
+            ChatWithWho = 0;
+            MessageBox.erase(MessageBox.begin() + choice - 1);
         }
         else if (MessageBox[choice - 1].kind == MSG_SYS_INVIFri)
         {
@@ -757,6 +1029,7 @@ void LookMsgBox()
                     my_err(__FILE__, "SendMSG", __LINE__, 0);
                 printf("success\n");
             }
+            MessageBox.erase(MessageBox.begin() + choice - 1);
         }
         else if (MessageBox[choice - 1].kind == MSG_SYS_AGRAGRP)
         {
@@ -768,12 +1041,406 @@ void LookMsgBox()
                 strcpy(sendpack.strmsg, MessageBox[choice - 1].msg);
                 sendpack.cmdflag = Flag_Cmd_InvAddMem;
                 sendpack.source_id = MessageBox[choice - 1].sourceid;
-                sendpack.source_id = MessageBox[choice - 1].targetid;
+                sendpack.target_id = MessageBox[choice - 1].targetid;
+
+                printf("sendpack.cmdflag = %d\n", sendpack.cmdflag);
+                printf("sendpack.source_id = %d\n", sendpack.source_id);
+                printf("sendpack.target_id = %d\n", sendpack.target_id);
+                printf("sendpack.strmsg = %s\n", sendpack.strmsg);
+
                 ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
                 if (ret < 0)
                     my_err(__FILE__, "SendMSG", __LINE__, 0);
             }
+            MessageBox.erase(MessageBox.begin() + choice - 1);
         }
         // 文件
     }
+}
+
+void Exit()
+{
+    int ret;
+    Package sendpack;
+    sendpack.cmdflag = Flag_Cmd_Exit;
+    sendpack.source_id = user_id;
+
+    ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
+    if (ret < 0)
+    {
+        close(sock_fd);
+        my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
+}
+
+void LookMember(int grpid)
+{
+    int ret;
+    Package sendpack;
+    sendpack.source_id = user_id;
+    sendpack.cmdflag = Flag_Cmd_LkGrpMem;
+    sendpack.target_id = grpid;
+
+    GrpMem.clear();
+    ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
+    if (ret < 0)
+    {
+        close(sock_fd);
+        my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
+    while (flag == 0)  
+        ;
+    flag = 0;
+}
+
+void GetMemberList(int num)
+{
+    int ret;
+    Package recvpack;
+    GrpMem.clear();
+
+    for (int i = 0; i < num; i++)
+    {
+        ret = RecvMSG(sock_fd, &recvpack, PACK_SIZE, 0);
+        if (ret < 0)
+        {
+            close(sock_fd);
+            my_err(__FILE__, "SendMSG", __LINE__, 0);
+        }
+        if (ret == 0)
+        {
+            fprintf(stderr, "服务器未响应!!\n");
+            close(sock_fd);
+            my_err(__FILE__, "RecvMSG", __LINE__, 0);
+        }
+        
+        // 解析
+        char * str1, * str2;
+        char tempid[12], tempsta[5];
+        str1 = strstr(recvpack.strmsg, _END_);
+        str2 = strstr(str1 + strlen(_END_), _END_);
+        strncpy(tempid, recvpack.strmsg, str1 - recvpack.strmsg);
+        tempid[str1 - recvpack.strmsg] = '\0';
+        strncpy(tempsta, str1 + strlen(_END_), str2 - str1 - strlen(_END_));
+        tempsta[str2 - str1 - strlen(_END_)] = '\0';
+
+        sMember m;
+        m.id = atoi(tempid);
+        m.status = atoi(tempsta);
+
+        GrpMem.push_back(m);                  // 放入vector
+    }
+}
+
+// 如果 user_id 不是管理员 还需要一个search函数
+void ExGroup(int grpid, int user)
+{
+    int ret;
+    int pos = SearchInGroup(user);
+    if (pos < 0)
+    {
+        printf("你还不是群成员\n");
+        return;
+    }
+    else if (GrpMem[pos].status == 2)
+    {
+        printf("你是群主，无法退出该群!\n");
+        return;
+    }
+    Package sendpack;
+    sendpack.cmdflag = Flag_Cmd_RemvSome;
+    sendpack.source_id = grpid;
+    sendpack.target_id = user;
+
+    ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
+    if (ret < 0)
+    {
+        close(sock_fd);
+        my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
+}
+
+// 查找群成员
+int SearchInGroup(int userid)
+{
+    int num = GrpMem.size();
+    for (int i = 0; i < num; i++)
+    {
+        if (GrpMem[i].id == userid)
+            return i;
+    }
+    return -1;
+}
+
+void ConGroup(int grpid)
+{
+    int ret, loop = 1;
+    int pos = SearchInGroup(user_id);
+    if (pos < 0)
+    {
+        printf("你还不是群成员\n");
+        return;
+    }
+    else if (GrpMem[pos].status == 0)
+    {
+        printf("你是普通群员，没有管理权限!\n");
+        return;
+    }
+    do
+    {
+        S_CLEAR(); 
+        printf("                  - Function -                   \n\n");    
+        printf("\t\t[1] 将某人移出群\t\t\t\n");
+        printf("\t\t[2] 解散群组[群主]\t\t\t\n");
+        printf("\t\t[3] 设置管理员[群主]\t\t\t\n");
+        printf("\t\t[4] 取消管理员[群主]\t\t\t\n");
+        printf("\t\t[5] 返回\t\t\t\n");
+
+        int cmd;
+        if (scanf("%d", &cmd) != 1)
+        {
+            while (getchar() != '\n')
+                ;
+            continue;
+        }
+        switch (cmd)
+        {
+            case 1:
+                RemoveSome(grpid);
+                break;
+            case 2:
+                DisBand(grpid);
+                break;
+            case 3:
+                SetConMem(grpid);
+                break;
+            case 4:
+                UnSetConMem(grpid);
+                break;
+            case 5:
+                loop = 0;
+                break;
+            default:
+                printf("无效命令!\n");
+                break;
+        }
+    }while(loop);
+}
+
+void RemoveSome(int grpid)
+{
+    int one;
+    S_CLEAR();
+    printf("请输入要删除的群成员:\n");
+    scanf("%d", &one);
+    int pos = SearchInGroup(one);
+    if (pos < 0)
+    {
+        printf("该成员不在本群!\n");
+        return ;
+    }
+    else if (GrpMem[pos].status != 0)
+    {
+        printf("对方不是普通群员，你无权将他移出群聊!\n");
+        return;
+    }
+    else 
+    {
+        ExGroup(grpid, one);
+    }
+}
+
+void DisBand(int grpid)
+{
+    int ret;
+    Package sendpack;
+    int pos = SearchInGroup(user_id);
+    if (pos < 0)
+    {
+        printf("你不是该群的成员！\n");
+        return ;
+    }
+    else if (GrpMem[pos].status != 2)
+    {
+        printf("你不是群主，无权解散群!\n");
+        return;
+    }
+    else 
+    {
+        sendpack.cmdflag = Flag_Cmd_DisBand;
+        sendpack.source_id = user_id;
+        sendpack.target_id = grpid;
+        memset(sendpack.strmsg, 0, sizeof(sendpack.strmsg));
+
+        ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
+        if (ret < 0)
+        {
+            close(sock_fd);
+            my_err(__FILE__, "SendMSG", __LINE__, 0);
+        }
+    }
+}
+
+void SetConMem(int grpid)
+{
+    int one, ret, pos;
+    Package sendpack;
+
+    pos = SearchInGroup(user_id);
+    if (pos < 0)
+    {
+        printf("你不是该群的成员！\n");
+        return ;
+    }
+    else if (GrpMem[pos].status != 2)
+    {
+        printf("你不是群主，无权设置管理员!\n");
+        return ;
+    }
+    
+    printf("请输入要设置管理员的用户id:\n");
+    if (scanf("%d", &one) != 1)
+    {
+        while (getchar() != '\n')
+            ;
+        return ;
+    }
+    pos = SearchInGroup(one);
+    if (pos < 0)
+    {
+        printf("对方不是群成员，无法操作\n");
+        return;
+    }
+    
+    sendpack.cmdflag = Flag_Cmd_SetCtrl;
+    sendpack.source_id = grpid;
+    sendpack.target_id = one;
+
+    ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
+    if (ret < 0)
+    {
+        close(sock_fd);
+        my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
+
+    printf("设置对方为管理员成功!\n");
+
+}
+
+void UnSetConMem(int grpid)
+{
+    int one, ret, pos;
+    Package sendpack;
+
+    pos = SearchInGroup(user_id);
+    if (pos < 0)
+    {
+        printf("你不是该群的成员！\n");
+        return ;
+    }
+    else if (GrpMem[pos].status != 2)
+    {
+        printf("你不是群主，无权设置管理员!\n");
+        return ;
+    }
+    
+    printf("请输入要取消管理员的用户id:\n");
+    if (scanf("%d", &one) != 1)
+    {
+        while (getchar() != '\n')
+            ;
+        return ;
+    }
+    pos = SearchInGroup(one);
+    if (pos < 0)
+    {
+        printf("对方不是群成员，无法操作\n");
+        return;
+    }
+    
+    sendpack.cmdflag = Flag_Cmd_UnSetCtrl;
+    sendpack.source_id = grpid;
+    sendpack.target_id = one;
+
+    ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
+    if (ret < 0)
+    {
+        close(sock_fd);
+        my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
+
+    printf("取消对方为管理员成功!\n");
+}
+
+void AddGrp(int id)
+{
+    int ret, pos;
+    Package sendpack;
+
+    if (SearchMyGrp(id) > 0)
+    {
+        printf("你已加入该群，无须重复添加\n");
+        return ;
+    }
+    sendpack.cmdflag = Flag_Cmd_AddGrp;
+    sendpack.source_id = user_id;
+    sendpack.target_id = id;
+
+    ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
+    if (ret < 0)
+    {
+        close(sock_fd);
+        my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
+
+    printf("添加群组申请已发送，请等待管理员审核\n");
+    printf("按回车键退出\n");
+    while (getchar() != '\n')
+        ;
+    return;
+}
+
+void CreateGrp(void)
+{
+    int ret;
+    Package sendpack;
+    char grpname[USER_NAME_MAX + 1], grpsome[OTHER_SIZE + 1];
+    do
+    {
+        S_CLEAR(); 
+        printf("*------------------- Chat Room -------------------*\n");
+        printf("*                 - Create Group -                  *\n\n");
+        printf("请输入群名：\n");
+    }while (!s_gets(grpname, USER_NAME_MAX, stdin) || grpname[0] == '\0');
+    printf("请输入群介绍:\n");
+    s_gets(grpsome, OTHER_SIZE, stdin);
+
+    sprintf(sendpack.strmsg, "%s%s%s%s", grpname, _END_, grpsome, _END_);
+    sendpack.source_id = user_id;
+    sendpack.cmdflag = Flag_Cmd_CreateGrp;
+
+    ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
+    if (ret < 0)
+    {
+        close(sock_fd);
+        my_err(__FILE__, "SendMSG", __LINE__, 0);
+    }
+}
+
+void PrintGrpMem(void)
+{
+    int num = (int)GrpMem.size();
+    if (num == 0)
+        printf("群成员列表为空\n");
+    for (int i = 0; i < num; i++)
+    {
+        printf("[%d] ", GrpMem[i].id);
+        if (GrpMem[i].status == 0)
+            printf("普通群员\n");
+        else if (GrpMem[i].status == 1)
+            printf("管理员\n");
+        else if (GrpMem[i].status == 2)
+            printf("群主\n");
+    }
+    printf("\n");
 }

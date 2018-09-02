@@ -47,7 +47,7 @@ int vRegister(Package * data, int sockfd)
             // S_CLOSE();
             printf("           please input username[1 ~ %d]:         \n", USER_NAME_MAX);
             printf("\t\tusername: ");
-        }while(!s_gets(username, USER_NAME_MAX, stdin) || username[0] == '\n');
+        }while(!s_gets(username, USER_NAME_MAX, stdin) || username[0] == '\0');
 
         printf("           please input password[%d ~ %d]:        \n", USER_PASS_MIN, USER_PASS_MAX);
         printf("\t\tpassword: ");

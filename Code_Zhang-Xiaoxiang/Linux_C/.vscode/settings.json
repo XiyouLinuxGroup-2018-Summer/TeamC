@@ -15,7 +15,19 @@
         "string.h": "c",
         "base.h": "c",
         "internet.h": "c",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "vector": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "forward_list": "cpp",
+        "list": "cpp",
+        "ratio": "cpp",
+        "bitset": "cpp",
+        "initializer_list": "cpp",
+        "utility": "cpp",
+        "valarray": "cpp",
+        "chrono": "cpp",
+        "iomanip": "cpp"
     },
     // "cmake.configureOnOpen": false
 }

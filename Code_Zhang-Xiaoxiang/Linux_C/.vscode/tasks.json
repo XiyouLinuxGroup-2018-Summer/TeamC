@@ -4,7 +4,7 @@
     "tasks": [
         {
             "label": "Compile", // 任务名称，与launch.json的preLaunchTask相对应
-            "command": "gcc", // 如果用MinGW，编译C用gcc，编译c++用g++
+            "command": "g++", // 如果用MinGW，编译C用gcc，编译c++用g++
             "args": [
                 "${file}",
                 "-o", // 指定输出文件名，不加该参数则默认输出a.exe
