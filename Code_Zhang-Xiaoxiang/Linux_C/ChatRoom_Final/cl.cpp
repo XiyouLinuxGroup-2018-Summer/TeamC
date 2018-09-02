@@ -92,7 +92,7 @@ int main(void)
     memset(&cli_addr, 0, sizeof(struct sockaddr_in));
     cli_addr.sin_family = AF_INET;                      // 设置为tcp/ip     
     cli_addr.sin_port = htons(PORT);                    // 设置端口
-    cli_addr.sin_addr.s_addr = inet_addr(SIP);          // 设置ip
+    cli_addr.sin_addr.s_addr = inet_addr(CIP);          // 设置ip
 
     sock_fd = socket(AF_INET, SOCK_STREAM, 0);          // 创建套接字
     if (sock_fd < 0)
