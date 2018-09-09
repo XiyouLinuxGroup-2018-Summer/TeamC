@@ -376,7 +376,8 @@ char* SearchGrpId(int id, char * grp)
         return NULL;
     }
     // id [flag] name [flag] create_time [flag] member_num [flag] introduction [flag]
-    sprintf(grp, "%s", _row[0]);
+    if (grp)
+        sprintf(grp, "%s", _row[0]);
 
     mysql_free_result(_res);
     return grp;

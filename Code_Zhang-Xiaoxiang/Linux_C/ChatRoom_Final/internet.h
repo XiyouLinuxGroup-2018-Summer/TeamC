@@ -1,10 +1,12 @@
 #ifndef _INTER_NET_H
 #define _INTER_NET_H
+#include <bits/types.h>
 
 // server/client configure
 #define PORT    10240                   // 端口号
 #define SIP     "127.0.0.1"             // 本地先凑合用
-#define CIP     "128.0.0.171"             // 凑合....
+// #define CIP     "128.0.0.171"             // 凑合....
+#define CIP     "127.0.0.1"
 
 // 消息种类
 #define MSG_FriNOR          0        // 私聊信息

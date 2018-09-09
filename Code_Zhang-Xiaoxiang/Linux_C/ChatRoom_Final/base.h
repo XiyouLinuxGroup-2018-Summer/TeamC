@@ -21,8 +21,8 @@
 #include <pthread.h>
 
 // 屏幕光标
-// #define CLEAR()           printf("\ec")              // 清屏
-#define CLEAR()             printf("\033[2J")
+#define CLEAR()             printf("\ec")              // 清屏
+// #define CLEAR()             printf("\033[2J")
 #define CLOSE()             printf("\e[0m")            // 关闭所有属性
 #define BLOD()              printf("\e[1m")            // 强调、加粗、高亮
 #define FLCK()              printf("\e[5m")            // 闪烁

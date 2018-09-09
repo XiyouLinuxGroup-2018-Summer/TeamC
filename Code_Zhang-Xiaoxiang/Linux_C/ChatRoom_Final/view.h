@@ -29,29 +29,4 @@ int vFunMainMenu(void);
 // fun: 登录
 int vLogin(Package * data, int sockfd);
 
-// fun: 找回密码
-// int vForgetPass(char * question, char * answer);
-
-// fun: 对好友操作
-int vFunFriendMenu(void);
-
-// // fun: 对群成员的操作
-// int vFunMemMenu(void);
-
-// // fun: 对群组操作
-int vFunGroupMenu(int status);
-
-// // fun: SendFile
-// int vSendFile(void);
-
-// // fun: 添加好友
-// int vAddFriend(void);
-
-// // fun: 添加群聊
-// int vAddGroup(void);
-
-// // fun: 创建群聊
-// int vCreateGroup(void);
-
-
 #endif

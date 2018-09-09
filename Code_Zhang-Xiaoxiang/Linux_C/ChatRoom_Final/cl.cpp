@@ -42,9 +42,10 @@ static vector<sFriend>myFriend;                                 // 好友列表
 static vector<sGroup>myGroup;                                   // 群组列表
 static vector<Message>MessageBox;                               // 消息盒子
 static vector<sMember>GrpMem;
+pthread_t Trecv, Tinit;                                         // 线程id
 
 void* PrecvMSG(void * arg);                                     // 线程: 接受消息
-void* InitiaClient(void * arg);                                   // 初始化客户端
+void* InitiaClient(void * arg);                                 // 初始化客户端
 void GetOffMSG(void);
 void SendGetFriList(void);
 void GetFriList(Package recvpack);
@@ -85,7 +86,6 @@ int main(void)
     signal(SIGPIPE, SIG_IGN);                           // 屏蔽sigpipe信号
 
     int ret, loopflag = 1, status = 0;                  // status: 登录状态 loopflag: 循环标识 ret: 函数返回值处理  
-    pthread_t Trecv, Tinit;                             // 线程id
     struct sockaddr_in cli_addr;                        // 套接字结构
     Package Datapack;                                   // 数据包
 
@@ -94,6 +94,7 @@ int main(void)
     cli_addr.sin_port = htons(PORT);                    // 设置端口
     cli_addr.sin_addr.s_addr = inet_addr(CIP);          // 设置ip
 
+    _Again:
     sock_fd = socket(AF_INET, SOCK_STREAM, 0);          // 创建套接字
     if (sock_fd < 0)
         my_err(__FILE__, "sock", __LINE__);
@@ -109,7 +110,7 @@ int main(void)
     // 开始界面
     while (loopflag)
     {
-        Menu:ret = vBeginRLQ();
+        ret = vBeginRLQ();
         while (getchar() != '\n');
         switch(ret)
         {
@@ -273,7 +274,10 @@ int main(void)
                 break;
             case 7:
                 status = 0;
-                goto Menu;
+                Exit();
+                close(sock_fd);
+                loopflag = 1;
+                goto _Again;
                 break;
             case 8: 
                 Exit();
@@ -432,8 +436,7 @@ void* PrecvMSG(void * arg)
                 }
                 else if (recvpack.statusflag == -111)
                 {
-                    printf("文件接收完成!\n");
-                    sleep(2);
+                    printf("\n\n文件接收完成!\n");
                 }
                 else 
                 {
@@ -473,6 +476,8 @@ void* InitiaClient(void * arg)
 
     pthread_exit(0);
 }
+
+
 
 void GetOffMSG(void)
 {
@@ -522,24 +527,28 @@ void GetOffMSG(void)
         }
 
         // 解析包
-        char * str1, * str2, *str3, * str4, * str6;
+        char * str1, * str2, *str3, * str4, * str5;
         char tempid[12], temptarid[12], tempstatus[5], tempmsg[128], temptime[30];
         str1 = strstr(recvpack.strmsg, _END_);
         str2 = strstr(str1 + strlen(_END_), _END_);
         str3 = strstr(str2 + strlen(_END_), _END_);
         str4 = strstr(str3 + strlen(_END_), _END_);
-        str6 = strstr(str4 + strlen(_END_), _END_);
+        str5 = strstr(str4 + strlen(_END_), _END_);
 
         strncpy(tempid, recvpack.strmsg, str1 - recvpack.strmsg);
         tempid[str1 - recvpack.strmsg] = '\0';
+
         strncpy(temptarid, str1 + strlen(_END_), str2 - str1 - strlen(_END_));
         temptarid[str2 - str1 - strlen(_END_)] = '\0';
+
         strncpy(tempstatus, str2 + strlen(_END_), str3 - str2 - strlen(_END_));
         tempstatus[str3 - str2 - strlen(_END_)] = '\0';
+
         strncpy(tempmsg, str3 + strlen(_END_), str4 - str3 - strlen(_END_));
-        tempmsg[str4-str3 - strlen(_END_)] = '\0';
-        strncpy(temptime, str3 + strlen(_END_), str4 - str3 - strlen(_END_));
-        temptime[str4-str3 - strlen(_END_)] = '\0';
+        tempmsg[str4 - str3 - strlen(_END_)] = '\0';
+
+        strncpy(temptime, str4 + strlen(_END_), str5 - str4 - strlen(_END_));
+        temptime[str5 - str4 - strlen(_END_)] = '\0';
 
         Message temp;
         temp.sourceid = atoi(tempid);
@@ -855,6 +864,7 @@ void SendFile(int tarid)
 
     printf("文件发送成功!\n");
     close(fd);
+    sleep(3);
 }
 
 void FunGroupMenu(int grpid)
@@ -928,6 +938,9 @@ void ChatWith(int tarid, int kind)
     printf("                  - Chat with %d -                   \n\n", tarid);    
     while (s_gets(inputmsg, 510, stdin) && inputmsg[0] !='\0')
     {
+        if (strcmp(inputmsg, "quit") == 0)
+            break;
+            
         printf("\n");
         get_time(msg);
         strcat(msg, inputmsg);
@@ -950,9 +963,6 @@ void ChatWith(int tarid, int kind)
             close(sock_fd);
             my_err(__FILE__, "SendMSG", __LINE__);
         }
-
-        if (strcmp(inputmsg, "quit") == 0)
-            break;
     }
     
     close(fd);
@@ -966,6 +976,7 @@ void ShiSome(int tarid)
     if (myFriend[pos].shield == 1)
     {
         printf("好友已被屏蔽，无须操作\n");
+        sleep(2);
         return ;
     }
     sendpack.cmdflag = Flag_Cmd_ShiSome;
@@ -981,6 +992,7 @@ void ShiSome(int tarid)
     }
 
     printf("好友已被屏蔽，你将不会收到来自他的信息\n");
+    sleep(2);
 }
 
 void UnShiSome(int tarid)
@@ -991,6 +1003,7 @@ void UnShiSome(int tarid)
     if (myFriend[pos].shield == 0)
     {
         printf("好友没有被屏蔽，无须操作\n");
+        sleep(2);
         return ;
     }
     sendpack.cmdflag = Flag_Cmd_UnShiSome;
@@ -1006,6 +1019,7 @@ void UnShiSome(int tarid)
     }
 
     printf("已经解除对好友的屏蔽\n");
+    sleep(2);
 }
 
 int MainMenu()
@@ -1035,19 +1049,20 @@ int MainMenu()
 // kind == 1 私聊记录   kind == 0 群聊记录
 void MessageHistory(int tarid, int kind)
 {
-    char tempfile[30], tempbuf[512];
+    char tempfile[30], tempbuf[10240];
     int tempid = kind == 0 ? -1 * tarid : tarid;
     if (kind == 1)
-        sprintf(tempfile, "/%dand%d", user_id, tempid);
+        sprintf(tempfile, "./%dand%d", user_id, tempid);
     else 
         sprintf(tempfile, "./%d", tarid);
-    int fd = open(tempfile, O_RDONLY | O_CREAT, S_IRWXU);
+    int fd = open(tempfile, O_RDWR | O_CREAT, S_IRWXU);
     if (fd == -1)
         perror("open");
     printf("----------------------------------------\n\n");
 
-    read(fd, tempbuf, sizeof(tempbuf));
-    printf("%s", tempbuf);
+    int len = read(fd, tempbuf, sizeof(tempbuf));
+    if (len)
+        printf("%s", tempbuf);
 
     printf("\n------------------ end -----------------\n");
 
@@ -1151,6 +1166,12 @@ void LookMsgBox()
         if (MessageBox[choice - 1].kind == MSG_FriNOR)
         {
             ChatWithWho = MessageBox[choice - 1].sourceid;
+            
+            printf("消息盒子:\n");
+            printf("MessageBox[choice - 1].sor = %d\n", MessageBox[choice - 1].sourceid);
+            printf("MessageBox[choice - 1].tar = %d\n", MessageBox[choice - 1].targetid);
+            printf("Chat With %d\n", ChatWithWho);
+
             ChatWith(MessageBox[choice - 1].sourceid, 1);
             ChatWithWho = 0;
             MessageBox.erase(MessageBox.begin() + choice - 1);
@@ -1235,13 +1256,13 @@ void Exit()
     Package sendpack;
     sendpack.cmdflag = Flag_Cmd_Exit;
     sendpack.source_id = user_id;
-
     ret = SendMSG(sock_fd, &sendpack, PACK_SIZE, 0);
     if (ret < 0)
     {
         close(sock_fd);
         my_err(__FILE__, "SendMSG", __LINE__);
     }
+    pthread_cancel(Trecv);
 }
 
 void LookMember(int grpid)
@@ -1389,11 +1410,13 @@ void RemoveSome(int grpid)
     if (pos < 0)
     {
         printf("该成员不在本群!\n");
+        sleep(2);
         return ;
     }
     else if (GrpMem[pos].status != 0)
     {
         printf("对方不是普通群员，你无权将他移出群聊!\n");
+        sleep(2);
         return;
     }
     else 
@@ -1410,11 +1433,13 @@ void DisBand(int grpid)
     if (pos < 0)
     {
         printf("你不是该群的成员！\n");
+        sleep(2);
         return ;
     }
     else if (GrpMem[pos].status != 2)
     {
         printf("你不是群主，无权解散群!\n");
+        sleep(2);
         return;
     }
     else 
@@ -1442,11 +1467,13 @@ void SetConMem(int grpid)
     if (pos < 0)
     {
         printf("你不是该群的成员！\n");
+        sleep(2);
         return ;
     }
     else if (GrpMem[pos].status != 2)
     {
         printf("你不是群主，无权设置管理员!\n");
+        sleep(2);
         return ;
     }
     
@@ -1461,6 +1488,7 @@ void SetConMem(int grpid)
     if (pos < 0)
     {
         printf("对方不是群成员，无法操作\n");
+        sleep(2);
         return;
     }
     
@@ -1476,7 +1504,7 @@ void SetConMem(int grpid)
     }
 
     printf("设置对方为管理员成功!\n");
-
+    sleep(2);
 }
 
 void UnSetConMem(int grpid)
@@ -1488,11 +1516,13 @@ void UnSetConMem(int grpid)
     if (pos < 0)
     {
         printf("你不是该群的成员！\n");
+        sleep(2);
         return ;
     }
     else if (GrpMem[pos].status != 2)
     {
         printf("你不是群主，无权设置管理员!\n");
+        sleep(2);
         return ;
     }
     
@@ -1507,6 +1537,7 @@ void UnSetConMem(int grpid)
     if (pos < 0)
     {
         printf("对方不是群成员，无法操作\n");
+        sleep(2);
         return;
     }
     
@@ -1522,6 +1553,7 @@ void UnSetConMem(int grpid)
     }
 
     printf("取消对方为管理员成功!\n");
+    sleep(2);
 }
 
 void AddGrp(int id)
@@ -1532,6 +1564,7 @@ void AddGrp(int id)
     if (SearchMyGrp(id) > 0)
     {
         printf("你已加入该群，无须重复添加\n");
+        sleep(2);
         return ;
     }
     sendpack.cmdflag = Flag_Cmd_AddGrp;

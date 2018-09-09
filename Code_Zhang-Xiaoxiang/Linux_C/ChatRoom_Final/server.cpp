@@ -90,7 +90,7 @@ int main(void)
 
         for (int i = 0; i < nfds; i++)
         {
-            if (events[i].data.fd == sock_fd)       // 收到 accept 请求
+            if (events[i].data.fd == sock_fd)                       // 收到 accept 请求
             {
                 conn_fd = accept(sock_fd, (struct sockaddr*)&cli_addr, &cli_len);
                 if (conn_fd < 0)
@@ -603,6 +603,9 @@ void Exec_AddGrp(Package recvpack, int confd)
     sendpack.statusflag = MSG_SYS_AGRAGRP;      // 修改包为一个申请加群请求的消息包
     sprintf(sendpack.strmsg, "[System] %d 请求加入群 %d", sourceid, tar_id);
     
+    if (!SearchGrpId(tar_id, NULL))
+        return;
+
     SearchStaGrp(tar_id, GRP_STA_CON, box + 1);
     SearchStaGrp(tar_id, GRP_STA_OWN, box);
     
@@ -749,7 +752,7 @@ void Exec_SendFile(Package recvpack, int confd)
         sendpack.cmdflag = Flag_Cmd_SendFile;       
         sendpack.source_id = recvpack.source_id;    // 文件的发送者
         sendpack.target_id = recvpack.target_id;
-        sprintf(sendpack.strmsg , "[system] %d 给你发送了一个文件", recvpack.source_id);
+        sprintf(sendpack.strmsg , "%d 给你发送了一个文件", recvpack.source_id);
 
         int tar_socket = FindOnline(sendpack.target_id);
         if (tar_socket == -1)                 // 离线
