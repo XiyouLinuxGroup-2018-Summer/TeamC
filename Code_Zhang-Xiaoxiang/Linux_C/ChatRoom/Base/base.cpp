@@ -30,7 +30,10 @@ void get_time(char * string)
     if (string == NULL)
         printf("%s\n", temptime);
     else
-        strcpy(string, temptime);
+    {
+        strcpy(string, temptime); 
+        strcat(string, "\t");  
+    }
 }
 
 // fun: 行输入
@@ -69,13 +72,41 @@ char* s_getchs(char * st, int n)
     return st;
 }
 
-void my_err(const char * file, const char * err_string, int line, int flag)
+// 错误处理
+void my_err(const char * file, const char * err_string, int line)
 {
-    fprintf(stderr, "File: %s\n", file);
-    fprintf(stderr, "line: %d ", line);
+    COLOR(S_DEFAULT_BACK, fRED);
+    fprintf(stderr, "File: %s\nline: %d ", file, line);
     perror(err_string);
-    if (!flag)
-        exit(1);
-    else
-        pthread_exit(0);
+    CLOSE();
+}
+
+// 将 \' \" \\ 转义 防止因sql语法错误导致程序崩溃
+void AddChar(char * string, char * pos, char ch)
+{
+    char * end = strchr(string, '\0');
+    *(end + 1) = '\0';
+
+    while (1)
+    {
+        *end = *(end - 1);
+        if (end == pos)
+            break;
+        end--;
+    }
+    *end = ch;
+}
+
+char * TranToEsc(char * string)
+{
+
+    for (int i = 0; string[i] != '\0'; i++)
+    {
+        if (string[i] == '\'' || string[i] == '\"' || string[i] == '\\')
+        {
+            AddChar(string, &string[i], '\\');
+            i++;
+        }
+    }
+    return string;
 }

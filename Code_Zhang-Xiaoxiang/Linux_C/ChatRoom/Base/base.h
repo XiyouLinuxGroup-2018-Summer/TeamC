@@ -46,8 +46,8 @@
 #define LFCOL(x)            S_LFCOL(x)
 
 // color 
-#define S_DEFAULT_FORE      39                         // 默认前景色
-#define S_DEFAULT_BACK      49                         // 默认背景色
+#define S_DEFAULT_FORE      39          // 默认前景色            
+#define S_DEFAULT_BACK      49          // 默认背景色           
 #define fBLACK              30
 #define fRED                31
 #define fGREEN              32
@@ -85,5 +85,7 @@ void get_time(char * string);
 char* s_gets(char * st, int n, FILE *fp);
 char* s_getchs(char * st, int n);
 void my_err(const char * file, const char * err_string, int line);
+char* TranToEsc(char * string);
+void AddChar(char* string, char * pos, char ch);
 
 #endif

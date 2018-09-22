@@ -1,6 +1,6 @@
-#include "base.h"
+#include "../Base/base.h"
 #include "view.h"
-#include "internet.h"
+#include "../Base/internet.h"
 
 int vBeginRLQ(void)
 {
@@ -34,7 +34,7 @@ int vRegister(Package * data, int sockfd)
     int ret;
     Package recvpack;
     memset(&recvpack, 0, sizeof(recvpack));
-    char username[USER_NAME_MAX + 1], pass[USER_PASS_MAX + 1], passagain[USER_PASS_MAX + 1];
+    char username[USER_NAME_MAX + 10], pass[USER_PASS_MAX + 10], passagain[USER_PASS_MAX + 10];
     char question[OTHER_SIZE + 1], answer[OTHER_SIZE + 1];
     while(1)
     {
@@ -80,9 +80,10 @@ int vRegister(Package * data, int sockfd)
             break;
         }
     }
+
     // 封装pack
     memset(data, 0, PACK_SIZE);
-    sprintf(data->strmsg, "%s%s%s%s%s%s%s%s", username, _END_, pass, _END_, question, _END_, answer, _END_);
+    sprintf(data->strmsg, "%s%s%s%s%s%s%s%s", TranToEsc(username), _END_, TranToEsc(pass), _END_, TranToEsc(question), _END_, TranToEsc(answer), _END_);
     data->cmdflag = Flag_Cmd_Register;
     ret = SendMSG(sockfd, data, PACK_SIZE, 0);
     if (ret < 0)

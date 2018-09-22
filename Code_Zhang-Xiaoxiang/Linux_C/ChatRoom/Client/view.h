@@ -1,8 +1,8 @@
 #ifndef _VIEW_H_
 #define _VIEW_H_
 
-#include "base.h"
-#include "internet.h"
+#include "../Base/base.h"
+#include "../Base/internet.h"
 
 // fun: 注册登录退出关于界面
 // 成功返回对应的选项
